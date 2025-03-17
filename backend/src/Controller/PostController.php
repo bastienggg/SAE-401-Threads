@@ -25,6 +25,7 @@ final class PostController extends AbstractController
             return [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
+                'pseudo' => $post->getPseudo(),
                 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
             ];
         }, $posts);

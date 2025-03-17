@@ -3,7 +3,7 @@
  *  C'est ici : https://fr.javascript.info/fetch
  */
 
-let API_URL = "http://localhost:8787"; // URL de base de l'API (à définir)
+let API_URL = "http://localhost:8080/"; // URL de base de l'API (à définir)
 
 /**
  *  getRequest
@@ -52,31 +52,31 @@ const getRequest = async function <T>(uri: string): Promise<T | false> {
  *  Le serveur retourne en JSON la nouvelle ressource créée en base avec son identifiant.
  *  La fonction retourne les données après conversion en objet Javascript (ou false si la requête a échoué)
  */
-const postRequest = async function <T>(
-  uri: string,
-  data: any,
-): Promise<T | false> {
+const postRequest = async function <T>(uri: string, data: any): Promise<T | false> {
   const options: RequestInit = {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify(data),
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   };
 
   try {
-    const response = await fetch(API_URL + uri, options); // exécution (asynchrone) de la requête et attente de la réponse
-    if (response.status !== 200) {
-      console.error("Erreur de requête : " + response.status); // affichage de l'erreur dans la console
-      return false; // si le serveur a renvoyé une erreur, on retourne false
+    const response = await fetch(API_URL + uri, options);
+    const text = await response.text(); // Get the raw response text
+    console.log('Raw response:', text); // Log the raw response
+    const result = JSON.parse(text); // Parse the raw response text as JSON
+    if (!response.ok) {
+      console.error('Error creating post:', result);
+      return false;
     }
-    const obj = await response.json(); // extraction du json retourné par le serveur (opération asynchrone aussi)
-    return obj; // et on retourne le tout (response.json() a déjà converti le json en objet Javscript)
+    return result;
   } catch (e) {
-    console.error("Echec de la requête : " + e); // affichage de l'erreur dans la console
+    console.error('Error creating post:', e);
     return false;
   }
 };
+
 
 /**
  *  deleteRequest

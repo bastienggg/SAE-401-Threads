@@ -20,6 +20,7 @@ class PostService
         $post = new Post();
         $post->setContent($payload->getContent());
         $post->setCreatedAt(new \DateTime());
+        $post->setPseudo($payload->pseudo);
 
         $this->entityManager->persist($post);
         $this->entityManager->flush();

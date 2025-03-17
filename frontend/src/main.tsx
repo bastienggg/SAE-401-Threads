@@ -9,6 +9,11 @@ import "./index.css";
 
 
 
+localStorage.setItem("pseudo", "Bastieng");
+
+
+
+
 const router = createBrowserRouter([
   {
     path: "/",

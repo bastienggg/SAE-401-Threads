@@ -20,6 +20,9 @@ class Post
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $created_at = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $Pseudo = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -52,6 +55,18 @@ class Post
     public function setCreatedAt(\DateTimeInterface $created_at): static
     {
         $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getPseudo(): ?string
+    {
+        return $this->Pseudo;
+    }
+
+    public function setPseudo(?string $Pseudo): static
+    {
+        $this->Pseudo = $Pseudo;
 
         return $this;
     }

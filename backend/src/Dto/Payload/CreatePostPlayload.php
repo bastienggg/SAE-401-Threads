@@ -10,6 +10,10 @@ class CreatePostPayload
     #[Assert\Length(max: 255)]
     private $content;
 
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
+    public string $pseudo;
+
     public function getContent(): ?string
     {
         return $this->content;

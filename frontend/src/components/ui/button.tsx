@@ -6,14 +6,17 @@ const buttonVariants = cva(base, {
   variants: {
     intent: {
       base: "w-full rounded-lg bg-neutral-900 py-2 text-white hover:cursor-pointer hover:bg-neutral-800",
+      primary: "w-full rounded-lg bg-blue-500 py-2 text-white hover:cursor-pointer hover:bg-blue-400",
+      secondary: "w-full rounded-lg bg-gray-500 py-2 text-white hover:cursor-pointer hover:bg-gray-400",
     },
   },
 });
 
 interface ButtonProps {
+  intent: 'base' | 'primary' | 'secondary';
   className?: string;
-  intent?: "base";
   children: React.ReactNode;
+  onClick?: () => void;
 }
 
 export default function Button({
