@@ -14,37 +14,44 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Twig\Environment;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Psr\Log\LoggerInterface;
 
 class AuthController extends AbstractController
 {
     #[Route('/login', name: 'api_login', methods: ['POST'])]
-    public function login(Request $request, UserRepository $userRepository,     UserPasswordHasherInterface $passwordEncoder): JsonResponse
+    public function login(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, LoggerInterface $logger): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        $identifier = $data['identifier'] ?? null; // Can be email or pseudo
+        $email = $data['email'] ?? null;
         $password = $data['password'] ?? null;
 
-        if (!$identifier || !$password) {
-            return new JsonResponse(['code' => 'C-3111'], JsonResponse::HTTP_BAD_REQUEST);
-        } 
+        if (!$email || !$password) {
+            $logger->error('Email and password are required');
+            return new JsonResponse(['code' => 'C-3111 '], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-        $user = $userRepository->findOneBy(['email' => $identifier]) ??     $userRepository->findOneBy(['pseudo' => $identifier]);
+        $user = $userRepository->findOneBy(['email' => $email]);
 
         if (!$user) {
-            return new JsonResponse(['code' => 'C-3121'],    JsonResponse::HTTP_NOT_FOUND);
+            // Log the error
+            $logger->error('Invalid email');
+            // Retourner un message d'erreur personnalisé pour un email invalide
+            return new JsonResponse(['code' => 'C-3121'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-
-        if (!$passwordEncoder->isPasswordValid($user, $password)) {
-            return new JsonResponse(['code' => 'C-3131'],    JsonResponse::HTTP_UNAUTHORIZED);
+        if (!$passwordHasher->isPasswordValid($user, $password)) {
+            // Log the error
+            $logger->error('Invalid password');
+            // Retourner un message d'erreur personnalisé pour un mot de passe invalide
+            return new JsonResponse(['code' => 'C-3131'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        if (!$user->getIsVerified()) {
-            return new JsonResponse(['code' => 'C-2131'],  JsonResponse::HTTP_UNAUTHORIZED);
-        }
+        // Générer le token JWT ici et le retourner
+        $token = $jwtManager->create($user);
 
-        return new JsonResponse(['code' => 'C-1101'],  JsonResponse::HTTP_OK);
+        return new JsonResponse(['token' => $token]);
     }
 
     
