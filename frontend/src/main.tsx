@@ -5,13 +5,12 @@ import Layout from "./routes/Layout";
 import Root from "./routes/Root";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
+import Signup from "./routes/Signup";
 import "./index.css";
 
 
 
 localStorage.setItem("pseudo", "Bastieng");
-
-
 
 
 const router = createBrowserRouter([
@@ -26,6 +25,10 @@ const router = createBrowserRouter([
       {
         path: "login",
         element: <Login />,
+      },
+      {
+        path: "signup",
+        element: <Signup />,
       },
       {
         path: "home",

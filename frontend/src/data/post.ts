@@ -8,7 +8,7 @@ interface PostType {
 let Post: PostType = {
   getPost: async function () {
     try {
-      let data = await getRequest("posts/");
+      let data = await getRequest("posts?page=1");
       return data;
     } catch (error) {
       console.error('Error fetching posts:', error);

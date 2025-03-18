@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from "../components/Navbar";
-import Post from "../components/Post";
+import Navbar from "../components/Navbar/Navbar";
+import Post from "../components/Post/Post";
 import { Post as PostData } from "../data/post";
 
 interface PostType {
@@ -37,7 +37,7 @@ export default function Home() {
           <Post key={post.id} content={post.content} pseudo={post.pseudo} createdAt={post.created_at} />
         ))}
       </section>
-      <div className="w-full fixed bottom-0 bg-white z-10">
+      <div className="w-full  bg-white z-10">
         <Navbar onPostCreated={fetchPosts} />
       </div>
     </main>

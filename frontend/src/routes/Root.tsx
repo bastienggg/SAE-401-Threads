@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import Button from "../components/ui/button.tsx";
+import { Button } from "../components/ui/button"
 
 
 
@@ -12,10 +12,10 @@ export default function Root() {
         <img src="./src/assets/Threads_Logo.svg" alt="" />
         <div className="flex w-full flex-col gap-11 md:w-1/2">
           <Link to="/login">
-            <Button intent="base">Login</Button>
+            <Button className="w-full hover:cursor-pointer">Login</Button>
           </Link>
-          <Link to="/login">
-            <Button intent="base">Sign Up</Button>
+          <Link to="/signup">
+            <Button className="w-full hover:cursor-pointer">Sign Up</Button>
           </Link>
         </div>
       </section>

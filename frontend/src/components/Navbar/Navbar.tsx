@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import NewPost from './NewPost';
+import NewPost from '../NewPost/NewPost';
 
 interface NavbarProps {
   onPostCreated: () => void;

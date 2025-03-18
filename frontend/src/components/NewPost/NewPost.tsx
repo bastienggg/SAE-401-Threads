@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Button from './ui/button';
+import {Button} from '../ui/button';
 
 interface NewPostProps {
   onClose: () => void;
@@ -62,7 +62,7 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
                     }} 
                 ></textarea>
                 <label className={charCount === 250 ? 'text-red-500' : ''}>{charCount}/250</label>
-                <Button intent="base" className='mb-16' onClick={handlePost}>Post</Button>
+                <Button  onClick={handlePost}>Post</Button>
             </div>
         </div>
     );
