@@ -14,28 +14,33 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Repository\PostRepository;
 
 final class PostController extends AbstractController
 {
     #[Route('/posts', name: 'app_post', methods: ['GET'], format: 'json')]
     #[IsGranted('ROLE_USER')]
-    public function index(EntityManagerInterface $entityManager): JsonResponse
+    public function index(Request $request, PostRepository $postRepository) : Response
     {
-        $posts = $entityManager->getRepository(Post::class)->findBy([], ['created_at' => 'DESC']);
+    $page = max(1, (int) $request->query->get('page', 1));
+    $count = 20;
+    $offset = ($page - 1) * $count;
 
-        $formattedPosts = array_map(function ($post) {
-            return [
-                'id' => $post->getId(),
-                'content' => $post->getContent(),
-                'pseudo' => $post->getPseudo(),
-                'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
-            ];
-        }, $posts);
+    $paginator = $postRepository->paginateAllOrderedByLatest($offset,   $count);
+    $totalPostsCount = $paginator->count();
 
-        return $this->json(['posts' => $formattedPosts]);
+    $previousPage = $page > 1 ? $page - 1 : null;
+    $nextPage = ($offset + $count) < $totalPostsCount ? $page + 1 : null;
+
+    return $this->json([
+        'posts' => iterator_to_array($paginator),
+        'previous_page' => $previousPage,
+        'next_page' => $nextPage
+    ]);
     }
 
     #[Route('/posts', name: 'posts.create', methods: ['POST'], format: 'json')]
+    #[IsGranted('ROLE_USER')]
     public function createPost(
         Request $request,
         SerializerInterface $serializer,

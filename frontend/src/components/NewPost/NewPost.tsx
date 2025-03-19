@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {Button} from '../ui/button';
+import { Post } from '../../data/post';
 
 interface NewPostProps {
   onClose: () => void;
-  onPostCreated: () => void; // Ajout de la fonction de rappel
+  onPostCreated: () => void; // Ajoutez cette ligne
 }
 
-function NewPost({ onClose, onPostCreated }: NewPostProps) {
+function NewPost({ onClose, onPostCreated }: NewPostProps) { // Modifiez cette ligne
     const [isVisible, setIsVisible] = useState(false);
     const [charCount, setCharCount] = useState(0);
     const [content, setContent] = useState('');
@@ -18,29 +19,12 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
     }, []);
 
     const handlePost = async () => {
-        if (pseudo && content) {
-            try {
-                const response = await fetch('http://localhost:8080/posts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ content, pseudo }),
-                });
-                const result = await response.json();
-                console.log('Résultat de la requête POST:', result);
-                if (response.ok) {
-                    onClose();
-                    onPostCreated(); // Appel de la fonction de rappel
-                } else {
-                    console.error('Error creating post:', result);
-                }
-            } catch (error) {
-                console.error('Error creating post:', error);
-            }
-        } else {
-            console.error('Pseudo or content is missing');
-        }
+            let pseudo = sessionStorage.getItem('Pseudo') as string;
+            let data = { content, pseudo }
+            console.log('Sending post data:', data); // Log the data being sent
+            await Post.setPost(data, sessionStorage.getItem('Token') as string);
+            setIsVisible(false);
+            onPostCreated(); // Ajoutez cet appel
     };
 
     return (
@@ -62,7 +46,7 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
                     }} 
                 ></textarea>
                 <label className={charCount === 250 ? 'text-red-500' : ''}>{charCount}/250</label>
-                <Button  onClick={handlePost}>Post</Button>
+                <Button className="w-full hover:cursor-pointer mb-14" onClick={handlePost}>Post</Button>
             </div>
         </div>
     );

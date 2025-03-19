@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "../ui/card";
+import { Auth } from "../../data/auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,34 +19,27 @@ export default function LoginPage() {
     event.preventDefault();
     setEmailError(false); // Reset email error state
     setPasswordError(false); // Reset password error state
-    try {
-      const response = await fetch("http://localhost:8080/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
 
-      const responseBody = await response.json();
-      console.log("Response:", response);
-      console.log("Response Body:", responseBody);
-
-      if (response.ok) {
-        localStorage.setItem("Token", responseBody.token);
-        navigate("/home");
-      } else {
-        if (responseBody.code === "C-3121") {
+    const fetchPosts = async () => {
+      let credential = { email, password };
+      console.log('credential:', credential);
+      const data = await Auth.login(credential);
+        if (data.code === "C-1101") {
+          sessionStorage.setItem('Token', data.token);
+          sessionStorage.setItem('Pseudo', data.pseudo);
+          navigate('/home');
+        } else if (data.code === "C-3121") {
           setEmailError(true);
-        } else if (responseBody.code === "C-3131") {
+        } else if (data.code === "C-3131") {
           setPasswordError(true);
-        } else {
-          console.error("Login failed");
         }
+        else {
+          setPasswordError(true);
+          setEmailError(true);
       }
-    } catch (error) {
-      console.error("An error occurred:", error);
-    }
+    };
+  
+    fetchPosts();
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +52,7 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-10/12 md:w-1/3">
       <CardHeader>
         <CardTitle>Login</CardTitle>
         <CardDescription>Enter your credentials to access your account</CardDescription>
@@ -93,11 +87,12 @@ export default function LoginPage() {
                 Password
               </label>
               <div className="relative">
-              <Input
+                <Input
                   id="password"
                   type={passwordVisible ? "text" : "password"}
                   value={password}
                   onChange={handlePasswordChange}
+                  className={passwordError ? "border-red-500" : ""}
                 />
                 <button
                   type="button"
@@ -112,13 +107,13 @@ export default function LoginPage() {
               )}
             </div>
           </div>
-            <Button type="submit" className="w-full hover:cursor-pointer mt-6">Log in</Button>
-            <div className="text-sm text-center text-gray-500 mt-6">
-              Don't have an account?{" "}
-              <Link to="/signup" className="text-primary hover:underline hover:cursor-pointer ">
-                Sign up
-              </Link>
-            </div>
+          <Button type="submit" className="w-full hover:cursor-pointer mt-6">Log in</Button>
+          <div className="text-sm text-center text-gray-500 mt-6">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-primary hover:underline hover:cursor-pointer ">
+              Sign up
+            </Link>
+          </div>
         </form>
       </CardContent>
     </Card>

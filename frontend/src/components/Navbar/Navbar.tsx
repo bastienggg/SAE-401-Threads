@@ -25,7 +25,7 @@ export default function Navbar({ onPostCreated }: NavbarProps) {
         <img src="./src/assets/svg/heart.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleIconClick} />
         <img src="./src/assets/svg/Rectangle_3.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleIconClick} />
       </div>
-      {isNewPostVisible && <NewPost onClose={handleCloseNewPost} onPostCreated={onPostCreated} />}
+      {isNewPostVisible && <NewPost onClose={handleCloseNewPost} onPostCreated={() => { onPostCreated(); handleCloseNewPost(); }} />}
     </>
   );
 }
