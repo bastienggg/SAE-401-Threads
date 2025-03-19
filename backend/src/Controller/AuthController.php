@@ -16,11 +16,12 @@ use Symfony\Component\Mime\Email;
 use Twig\Environment;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Psr\Log\LoggerInterface;
+use App\Entity\AccessToken;
 
 class AuthController extends AbstractController
 {
     #[Route('/login', name: 'api_login', methods: ['POST'])]
-    public function login(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, JWTTokenManagerInterface $jwtManager, LoggerInterface $logger): JsonResponse
+    public function login(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, LoggerInterface $logger, EntityManagerInterface $entityManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
@@ -48,10 +49,38 @@ class AuthController extends AbstractController
             return new JsonResponse(['code' => 'C-3131'], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        // Générer le token JWT ici et le retourner
-        $token = $jwtManager->create($user);
+       // Check if the user already has a valid token
+       $accessToken = $entityManager->getRepository(AccessToken::class)->findOneBy(['user' => $user->getId()]);
 
-        return new JsonResponse(['token' => $token]);
+       if ($accessToken && $accessToken->getExpiresAt() > new \DateTime()) {
+           // Token is still valid, return it
+           return new JsonResponse(['token' => $accessToken->getToken()]);
+       }
+
+       // Check if the user already has a valid token
+       $accessToken = $entityManager->getRepository(AccessToken::class)->findOneBy(['user' => $user->getId()]);
+
+       if ($accessToken && $accessToken->getExpiresAt() > new \DateTime()) {
+           // Token is still valid, return it
+           return new JsonResponse(['token' => $accessToken->getToken()]);
+       }
+
+       // Generate a new token
+       $token = bin2hex(random_bytes(32));
+       $expiresAt = new \DateTime('+1 hour');
+
+       // Store the new token in the database
+       $accessToken = new AccessToken();
+       $accessToken->setToken($token);
+       $accessToken->setUser($user->getId());
+       $accessToken->setExpiresAt($expiresAt);
+
+       $entityManager->persist($accessToken);
+
+       $entityManager->flush();
+
+    return new JsonResponse(['token' => $token, 'pseudo' => $user->getPseudo(), 'code' => 'C-1101']);
+
     }
 
     
