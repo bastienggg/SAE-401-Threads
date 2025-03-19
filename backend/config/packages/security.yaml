@@ -7,21 +7,21 @@ security:
             entity:
                 class: App\Entity\User
                 property: email
+        api_user_provider:
+            entity:
+                class: App\Entity\User
+                property: apiToken
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        main:
-            access_token:
-                token_handler: App\Security\AccessTokenHandler
-
         api:
-            pattern: ^/api
+            pattern: ^/
             stateless: true
-            provider: app_user_provider
-            custom_authenticators:
-                - App\Security\AccessTokenAuthenticator
+            provider: api_user_provider
+            custom_authenticator: App\Security\ApiAuthenticator
+            lazy: true
 
 
             # activate different ways to authenticate
@@ -33,10 +33,10 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        - { path: ^/login, roles: PUBLIC_ACCESS }
-        - { path: ^/register, roles: PUBLIC_ACCESS}
-        - { path: ^/verify, roles: PUBLIC_ACCESS }
-        - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
+        # - { path: ^/login, roles: PUBLIC_ACCESS }
+        # - { path: ^/register, roles: PUBLIC_ACCESS}
+        # - { path: ^/verify, roles: PUBLIC_ACCESS }
+        # - { path: ^/, roles: IS_AUTHENTICATED_FULLY }
 
 
 

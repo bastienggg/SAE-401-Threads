@@ -32,7 +32,7 @@ export default function LoginPage() {
       console.log("Response Body:", responseBody);
 
       if (response.ok) {
-        localStorage.setItem("authToken", responseBody.token);
+        localStorage.setItem("Token", responseBody.token);
         navigate("/home");
       } else {
         if (responseBody.code === "C-3121") {

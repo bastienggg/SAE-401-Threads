@@ -8,13 +8,15 @@ interface PostType {
   content: string;
   pseudo: string;
   created_at: string;
+  token?: string;
 }
 
 export default function Home() {
   const [posts, setPosts] = useState<PostType[]>([]);
 
   const fetchPosts = async () => {
-    const data = await PostData.getPost();
+    const token = localStorage.getItem('Token');
+    const data = await PostData.getPost(token as string);
     if (data) {
       setPosts(data.posts);
     } else {

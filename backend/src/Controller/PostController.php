@@ -13,10 +13,12 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class PostController extends AbstractController
 {
     #[Route('/posts', name: 'app_post', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_USER')]
     public function index(EntityManagerInterface $entityManager): JsonResponse
     {
         $posts = $entityManager->getRepository(Post::class)->findBy([], ['created_at' => 'DESC']);

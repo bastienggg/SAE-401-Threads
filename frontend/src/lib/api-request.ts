@@ -20,9 +20,18 @@ let API_URL = "http://localhost:8080/"; // URL de base de l'API (à définir)
  *  ATTENTION : La fonction est asynchrone, donc quand on l'appelle il ne faut pas oublier "await".
  *  Exemple : let data = await getRequest(http://.../api/articles);
  */
-const getRequest = async function <T>(uri: string): Promise<T | false> {
+const getRequest = async function <T>(uri: string, token?: string): Promise<T | false> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const options: RequestInit = {
     method: "GET",
+    headers: headers,
   };
 
   try {
@@ -52,13 +61,19 @@ const getRequest = async function <T>(uri: string): Promise<T | false> {
  *  Le serveur retourne en JSON la nouvelle ressource créée en base avec son identifiant.
  *  La fonction retourne les données après conversion en objet Javascript (ou false si la requête a échoué)
  */
-const postRequest = async function <T>(uri: string, data: any): Promise<T | false> {
+const postRequest = async function <T>(uri: string, data: any, token?: string): Promise<T | false> {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const options: RequestInit = {
     method: 'POST',
     body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: headers,
   };
 
   try {
