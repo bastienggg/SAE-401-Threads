@@ -36,12 +36,16 @@ interface PostProps {
         }
     
         return (
-            <div className="flex flex-col gap-4 w-11/12 border-b-2 border-b-neutral-200 p-4">
-                <div className="flex flex-row w-full justify-between items-center">
-                    <p className="font-bold">@{pseudo}</p>
-                    <p className="text-xs text-neutral-700">{timeSince(new Date(createdAt))} ago</p>
+            <div className="flex flex-row gap-4 p-4 w-full bg-white rounded-md shadow-md my-2 justify-between items-start">
+                    <img src="./src/assets/profil/default.jpg" alt="profil" className="w-9 aspect-square rounded-full " />
+                    <div className="w-full flex flex-col gap-2">
+                        <div className="flex flex-row items-center gap-2 justify-between w-full">
+                        <p className="font-bold text-neutral-900">@{pseudo}
+                        </p>
+                        <p className="text-xs text-neutral-700">{timeSince(new Date(createdAt))} ago</p>
+                        </div>
+                        <p>{content}</p>
+                    </div>
                 </div>
-                <p>{content}</p>
-            </div>
         );
     }

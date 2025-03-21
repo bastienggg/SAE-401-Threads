@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "../ui/card";
+import { Loader2 } from "lucide-react"; // Import the Loader2 component
+
 import { Auth } from "../../data/auth";
 
 export default function LoginPage() {
@@ -11,14 +13,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [emailNotVerifiedError, setEmailNotVerifiedError] = useState(false); // Nouvel état pour l'erreur de vérification de l'email
   const [passwordVisible, setPasswordVisible] = useState(false);
-  // Nouvel état pour gérer l'affichage du mot de passe
+  const [loading, setLoading] = useState(false); // Add loading state
+  const [resendEmailLoading, setResendEmailLoading] = useState(false); // Add resend email loading state
+
   const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setEmailError(false); // Reset email error state
     setPasswordError(false); // Reset password error state
+    setEmailNotVerifiedError(false); // Reset email not verified error state
+    setLoading(true); // Set loading state to true
 
     const fetchPosts = async () => {
       let credential = { email, password };
@@ -30,12 +37,21 @@ export default function LoginPage() {
           navigate('/home');
         } else if (data.code === "C-3121") {
           setEmailError(true);
+          setLoading(false);
+        } else if (data.code === "C-3111") {
+          setEmailError(true);
+          setPasswordError(true);
+          setLoading(false);
         } else if (data.code === "C-3131") {
           setPasswordError(true);
-        }
-        else {
-          setPasswordError(true);
-          setEmailError(true);
+          setLoading(false);
+        } else if (data.code === "C-3141") {
+          setEmailNotVerifiedError(true);
+          setLoading(false);
+        } else {
+          setPasswordError(false);
+          setEmailError(false);
+          setLoading(false);
       }
     };
   
@@ -45,10 +61,27 @@ export default function LoginPage() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
+    
   };
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
+  };
+
+  const handleResendEmail = async () => {
+    setResendEmailLoading(true);
+    let data = await Auth.resendVerificationEmail(email);
+    if (data.code === "C-1251") {
+      sessionStorage.setItem('Token', data.token);
+      sessionStorage.setItem('Pseudo', data.pseudo);
+      sessionStorage.setItem('email', data.email);
+      navigate('/verify');
+    }
+    if (data.code === "C-2501") {
+      setEmailError(true);
+    }
+    
+
   };
 
   return (
@@ -77,6 +110,18 @@ export default function LoginPage() {
               />
               {emailError && (
                 <p className="text-red-500 text-sm">Email invalide</p>
+              )}
+              {emailNotVerifiedError && (
+                <div>
+                  <p className="text-red-500 text-sm">Email non vérifié</p>
+                  <Button 
+                    onClick={handleResendEmail} 
+                    disabled={resendEmailLoading}
+                    className="mt-2 hover:cursor-pointer"
+                  >
+                    {resendEmailLoading ? "Sending..." : "Resend Verification Email"}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="space-y-2">
@@ -107,7 +152,16 @@ export default function LoginPage() {
               )}
             </div>
           </div>
-          <Button type="submit" className="w-full hover:cursor-pointer mt-6">Log in</Button>
+          <Button type="submit" className="w-full hover:cursor-pointer mt-8" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Please wait
+              </>
+            ) : (
+              "Login"
+            )}
+          </Button>
           <div className="text-sm text-center text-gray-500 mt-6">
             Don't have an account?{" "}
             <Link to="/signup" className="text-primary hover:underline hover:cursor-pointer ">

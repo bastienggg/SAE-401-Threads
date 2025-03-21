@@ -6,6 +6,8 @@ import Root from "./routes/Root";
 import Login from "./routes/Login";
 import Home from "./routes/Home";
 import Signup from "./routes/Signup";
+import Verify from "./routes/Verify";
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import "./index.css";
 
 
@@ -23,12 +25,20 @@ const router = createBrowserRouter([
         element: <Login />,
       },
       {
+        path: "verify",
+        element: <Verify />,
+      },
+      {
         path: "signup",
         element: <Signup />,
       },
       {
         path: "home",
-        element: <Home />,
+        element:(
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
