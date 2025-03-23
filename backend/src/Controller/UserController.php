@@ -9,60 +9,43 @@ use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class UserController extends AbstractController
 {
 
 
     #[Route('/users', name: 'get_all_users', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
     public function getAllUsers(UserRepository $userRepository): JsonResponse
     {
         $users = $userRepository->findAll();
         $data = [];
-
+    
         foreach ($users as $user) {
-            $data[] = [
-                'id' => $user->getId(),
-                'email' => $user->getEmail(),
-                'pseudo' => $user->getPseudo(),
-                'isVerified' => $user->getIsVerified(),
-            ];
+            if (!in_array('ROLE_ADMIN', $user->getRoles())) {
+                $data[] = [
+                    'id' => $user->getId(),
+                    'email' => $user->getEmail(),
+                    'pseudo' => $user->getPseudo(),
+                    'isVerified' => $user->getIsVerified(),
+                ];
+            }
         }
-
+    
         return new JsonResponse($data);
     }
 
-    #[Route('/users/{id}/update-pseudo', name: 'update_user_pseudo', methods: ['POST'])]
-    public function updatePseudo(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/users/{id}', name: 'update_user', methods: ['PATCH'])]
+    #[IsGranted('ROLE_USER')]
+    public function updateUser(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $newPseudo = $data['pseudo'] ?? null;
-
-        if (!$newPseudo) {
-            return new JsonResponse(['code' => 'C-2401'], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        $user = $userRepository->find($id);
-
-        if (!$user) {
-            return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        $user->setPseudo($newPseudo);
-        $entityManager->persist($user);
-        $entityManager->flush();
-
-        return new JsonResponse(['code' => 'C-1411'], JsonResponse::HTTP_OK);
-    }
-
-    #[Route('/users/{id}/update-email', name: 'update_user_email', methods: ['POST'])]
-    public function updateEmail(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
         $newEmail = $data['email'] ?? null;
 
-        if (!$newEmail) {
-            return new JsonResponse(['code' => 'C-2501'], JsonResponse::HTTP_BAD_REQUEST);
+        if (!$newPseudo && !$newEmail) {
+            return new JsonResponse(['code' => 'C-2601'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $user = $userRepository->find($id);
@@ -71,10 +54,40 @@ final class UserController extends AbstractController
             return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $user->setEmail($newEmail);
+        if ($newPseudo) {
+            $user->setPseudo($newPseudo);
+        }
+
+        if ($newEmail) {
+            $user->setEmail($newEmail);
+        }
+
         $entityManager->persist($user);
         $entityManager->flush();
 
-        return new JsonResponse(['code' => 'C-1511'], JsonResponse::HTTP_OK);
+        return new JsonResponse(['code' => 'C-1611'], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/verify-admin', name: 'verify_admin', methods: ['POST'])]
+    public function verifyAdmin(Request $request, UserRepository $userRepository): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $token = $data['token'] ?? null;
+
+        if (!$token) {
+            return new JsonResponse(['code' => 'C-2601'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $user = $userRepository->findOneBy(['apiToken' => $token]);
+
+        if (!$user) {
+            return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            return new JsonResponse(['code' => 'C-0001'], JsonResponse::HTTP_OK);
+        }
+
+        return new JsonResponse(['code' => 'C-1101'], JsonResponse::HTTP_OK);
     }
 }

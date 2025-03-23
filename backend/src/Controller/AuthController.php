@@ -22,54 +22,54 @@ class AuthController extends AbstractController
     public function login(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, LoggerInterface $logger, EntityManagerInterface $entityManager): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
-
+    
         $email = $data['email'] ?? null;
         $password = $data['password'] ?? null;
-
+    
         if (!$email || !$password) {
             $logger->error('Email and password are required');
             return new JsonResponse(['code' => 'C-3111 '], JsonResponse::HTTP_BAD_REQUEST);
         }
-
+    
         $user = $userRepository->findOneBy(['email' => $email]);
-
+    
         if (!$user) {
             // Log the error
             $logger->error('Invalid email');
             // Retourner un message d'erreur personnalisé pour un email invalide
             return new JsonResponse(['code' => 'C-3121'], JsonResponse::HTTP_UNAUTHORIZED);
         }
-
+    
         if (!$passwordHasher->isPasswordValid($user, $password)) {
             // Log the error
             $logger->error('Invalid password');
             // Retourner un message d'erreur personnalisé pour un mot de passe invalide
             return new JsonResponse(['code' => 'C-3131'], JsonResponse::HTTP_UNAUTHORIZED);
         }
-
+    
         if ($user->getIsVerified() === false) {
             $logger->error('Email not verified');
             return new JsonResponse(['code' => 'C-3141'], JsonResponse::HTTP_UNAUTHORIZED);
         }
-
+    
         // Check if the user has the admin role
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
-            return new JsonResponse(['code' => 'C-0001'], JsonResponse::HTTP_OK);
+            $token = $user->getApiToken();
+            return new JsonResponse(['code' => 'C-0001', 'email' => $user->getEmail(), 'token' => $token, 'pseudo' => $user->getPseudo()], JsonResponse::HTTP_OK);
         }
-
+    
         $token = $user->getApiToken();
-
+    
         if (!$token) {
             $token = bin2hex(random_bytes(32));
             $user->setApiToken($token);
-
+    
             $entityManager->persist($user);
             $entityManager->flush();
         }
-
+    
         return new JsonResponse(['token' => $token, 'pseudo' => $user->getPseudo(), 'code' => 'C-1101']);
     }
-
     
     #[Route('/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request, UserRepository $userRepository,  UserPasswordHasherInterface $passwordEncoder, EntityManagerInterface     $entityManager, MailerInterface $mailer, Environment $twig): JsonResponse

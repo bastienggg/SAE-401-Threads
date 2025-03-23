@@ -59,7 +59,7 @@ export default function AllPosts({ token }: AllPostsProps){
   }, [hasMore]);
 
   return (
-    <section ref={sectionRef} className="h-full flex flex-col mt-20 overflow-y-auto items-center w-full bg-neutral-100 px-2">
+    <section ref={sectionRef} className="h-full flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2">
       {posts.map(post => (
         <Post key={post.id} content={post.content} pseudo={post.pseudo} createdAt={post.created_at} />
       ))}

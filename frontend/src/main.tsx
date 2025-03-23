@@ -9,6 +9,8 @@ import Signup from "./routes/Signup";
 import Verify from "./routes/Verify";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import "./index.css";
+import Backoffice from "./routes/Backoffice";
+import ProtectedBackoffice from "./components/protetedBackoffice/protetedBackoffice"
 
 
 const router = createBrowserRouter([
@@ -40,6 +42,14 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: "backoffice",
+        element: (
+          <ProtectedBackoffice>
+            <Backoffice />
+          </ProtectedBackoffice>
+        ),
+      }
     ],
   },
 ]);
