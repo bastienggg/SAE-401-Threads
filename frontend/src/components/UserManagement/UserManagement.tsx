@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { Search, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
 import { EditUserDialog } from "../userDialogue/Userdialogue"
 import { User } from "../../data/user"
 import { UserManagementSqueleton } from "./UserManagementSqueleton"
@@ -20,7 +19,7 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   const usersPerPage = 7
 
@@ -48,12 +47,12 @@ export default function UserManagement() {
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
 
-  const handleEditClick = (user: any) => {
+  const handleEditClick = (user: User) => {
     setCurrentUser(user)
     setIsEditDialogOpen(true)
   }
 
-  const handleSaveEdit = (updatedUser: any) => {
+  const handleSaveEdit = (updatedUser: User) => {
     // Update the user in our state
     setUsers(users.map((user) => (user.id === updatedUser.id ? updatedUser : user)))
   }
@@ -83,49 +82,48 @@ export default function UserManagement() {
         <UserManagementSqueleton />
       ) : (
         <div className="rounded-lg border shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Pseudo</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentUsers.length > 0 ? (
-                currentUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.pseudo}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" className="hover:cursor-pointer" size="icon" onClick={() => handleEditClick(user)}>
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Modifier</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
-                    Aucun utilisateur trouvé
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+          <div className="relative w-full overflow-x-auto">
+            <table className="w-full caption-bottom text-sm">
+              <thead className="[&_tr]:border-b">
+                <tr>
+                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">ID</th>
+                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Pseudo</th>
+                  <th className="text-foreground h-10 px-2 text-right align-middle font-medium whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
+                {currentUsers.length > 0 ? (
+                  currentUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors">
+                      <td className="p-2 align-middle whitespace-nowrap">{user.id}</td>
+                      <td className="p-2 align-middle whitespace-nowrap">{user.pseudo}</td>
+                      <td className="p-2 align-middle whitespace-nowrap text-right">
+                        <Button variant="ghost" className="hover:cursor-pointer" size="default" onClick={() => handleEditClick(user)}>
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">Modifier</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} className="text-center py-4">Aucun utilisateur trouvé</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {filteredUsers.length > 0 && (
             <div className="flex items-center justify-between px-4 py-2 border-t">
               <div className="text-sm text-muted-foreground">
-                {indexOfFirstUser + 1} à {Math.min(indexOfLastUser, filteredUsers.length)} sur{" "}
-                {filteredUsers.length} utilisateurs
+                {indexOfFirstUser + 1} à {Math.min(indexOfLastUser, filteredUsers.length)} sur {filteredUsers.length} utilisateurs
               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="default"
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                 >
@@ -137,7 +135,7 @@ export default function UserManagement() {
                 </div>
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="default"
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                 >

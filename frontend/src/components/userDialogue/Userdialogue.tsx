@@ -1,8 +1,6 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Button } from "../ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "../ui/dialog"
 import { Label } from "../ui/label"
 import { Input } from "../ui/input"
 import { User } from "../../data/user" // Import the User object
@@ -82,10 +80,11 @@ export function EditUserDialog({ isOpen, onClose, user, onSave }: EditUserDialog
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Modifier l'utilisateur</DialogTitle>
+    <Dialog open={isOpen} onClose={onClose}>
+      <DialogContent open={isOpen} onClose={onClose}>
+        <DialogHeader open={isOpen} onClose={onClose}>
+          <DialogTitle open={isOpen} onClose={onClose}>Modifier l'utilisateur</DialogTitle>
+          <DialogClose open={isOpen} onClose={onClose} />
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
@@ -110,7 +109,7 @@ export function EditUserDialog({ isOpen, onClose, user, onSave }: EditUserDialog
           {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>} {/* Display success message */}
           {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>} {/* Display error message */}
         </div>
-        <DialogFooter>
+        <DialogFooter open={isOpen} onClose={onClose}>
           <Button variant="outline" className="hover:cursor-pointer" onClick={onClose}>
             Annuler
           </Button>

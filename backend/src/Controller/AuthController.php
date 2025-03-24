@@ -55,7 +55,7 @@ class AuthController extends AbstractController
         // Check if the user has the admin role
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             $token = $user->getApiToken();
-            return new JsonResponse(['code' => 'C-0001', 'email' => $user->getEmail(), 'token' => $token, 'pseudo' => $user->getPseudo()], JsonResponse::HTTP_OK);
+            return new JsonResponse(['code' => 'C-0001', 'email' => $user->getEmail(), 'token' => $token, 'pseudo' => $user->getPseudo(), 'id' => $user->getId()], JsonResponse::HTTP_OK);
         }
     
         $token = $user->getApiToken();
@@ -68,7 +68,7 @@ class AuthController extends AbstractController
             $entityManager->flush();
         }
     
-        return new JsonResponse(['token' => $token, 'pseudo' => $user->getPseudo(), 'code' => 'C-1101']);
+        return new JsonResponse(['token' => $token, 'pseudo' => $user->getPseudo(), 'code' => 'C-1101', 'id' => $user->getId()]);
     }
     
     #[Route('/register', name: 'api_register', methods: ['POST'])]
@@ -128,7 +128,7 @@ class AuthController extends AbstractController
     $entityManager->persist($user);
     $entityManager->flush();
 
-    return new JsonResponse(['code' => 'C-1251', 'token' => $token , 'pseudo' =>$user->getPseudo(), 'email' => $user->getEmail()], JsonResponse::HTTP_CREATED);
+    return new JsonResponse(['code' => 'C-1251', 'token' => $token, 'pseudo' => $user->getPseudo(), 'email' => $user->getEmail(), 'id' => $user->getId()], JsonResponse::HTTP_CREATED);
     }
 
     #[Route('/verify', name: 'api_verify', methods: ['POST'])]
@@ -206,7 +206,7 @@ class AuthController extends AbstractController
 
         $token = $user->getApiToken();
 
-        return new JsonResponse(['code' => 'C-1251', 'token' => $token ,'pseudo' =>$user->getPseudo(), 'email' => $user->getEmail()],JsonResponse::HTTP_CREATED);
+        return new JsonResponse(['code' => 'C-1251', 'token' => $token, 'pseudo' => $user->getPseudo(), 'email' => $user->getEmail(), 'id' => $user->getId()], JsonResponse::HTTP_CREATED);
     }
 
 }

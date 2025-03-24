@@ -36,6 +36,31 @@ final class UserController extends AbstractController
         return new JsonResponse($data);
     }
 
+    
+    #[Route('/users/{id}', name: 'get_user', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function fetchUser(int $id, UserRepository $userRepository): JsonResponse
+    {
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return new JsonResponse(['code' => 'C-4121'],   JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $data = [
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'pseudo' => $user->getPseudo(),
+            'bio' => $user->getBio(),
+            'avatar' => $user->getAvatar(),
+            'place' => $user->getPlace(),
+            'banner' => $user->getBanner(),
+            'link' => $user->getLink(),
+        ];
+
+        return new JsonResponse($data);
+    }
+
     #[Route('/users/{id}', name: 'update_user', methods: ['PATCH'])]
     #[IsGranted('ROLE_USER')]
     public function updateUser(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse

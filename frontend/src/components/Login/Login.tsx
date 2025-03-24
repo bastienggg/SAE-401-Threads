@@ -34,9 +34,11 @@ export default function LoginPage() {
         if (data.code === "C-1101") {
           sessionStorage.setItem('Token', data.token);
           sessionStorage.setItem('Pseudo', data.pseudo);
+          sessionStorage.setItem('id', data.id);
           navigate('/home');}
         else if (data.code === "C-0001") {
           sessionStorage.setItem('Token', data.token);
+          sessionStorage.setItem('id', data.id);
           sessionStorage.setItem('Pseudo', data.pseudo);
           navigate('/backoffice');
         } else if (data.code === "C-3121") {

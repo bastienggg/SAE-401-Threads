@@ -4,6 +4,7 @@ interface UserType {
     verifyAdmin: (credentials: { token: string }) => Promise<any>;
     getAllUsers: (token: string) => Promise<any>;
     Usermodify: (token: string, userId: string, dataUser: { pseudo: string, email: string }) => Promise<any>;
+    getUserInfos: (token: string, userId: string) => Promise<any>;
 }
 
 let User: UserType = {
@@ -19,6 +20,11 @@ let User: UserType = {
     },
     Usermodify: async function (token, userId, dataUser) {
         let data = await patchRequest(`users/${userId}`, dataUser, token);
+        console.log('Response data:', data); // Log the response data
+        return data;
+    },
+    getUserInfos: async function (token, userId) {
+        let data = await getRequest(`users/${userId}`, token);
         console.log('Response data:', data); // Log the response data
         return data;
     }

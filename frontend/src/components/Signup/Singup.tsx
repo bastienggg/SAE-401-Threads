@@ -65,6 +65,8 @@ export default function SignupPage() {
         sessionStorage.setItem('Token', response.token);
         sessionStorage.setItem('Pseudo', response.pseudo);
         sessionStorage.setItem('email', response.email);
+        sessionStorage.setItem('id', response.id);
+
 
         navigate('/verify');
       } else if(response.code === "C-3242") {

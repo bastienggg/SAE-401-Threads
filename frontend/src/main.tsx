@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import "./index.css";
 import Backoffice from "./routes/Backoffice";
 import ProtectedBackoffice from "./components/protetedBackoffice/protetedBackoffice"
+import ProfilePage from "./routes/Profil";
 
 
 const router = createBrowserRouter([
@@ -40,6 +41,12 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: "profil",
+        element:(
+            <ProfilePage />
         ),
       },
       {

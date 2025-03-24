@@ -1,8 +1,12 @@
 import * as React from "react"
-
 import { cn } from "../../lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+interface CardProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function Card({ className, children, ...props }: CardProps) {
   return (
     <div
       data-slot="card"
@@ -11,11 +15,18 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+interface CardHeaderProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardHeader({ className, children, ...props }: CardHeaderProps) {
   return (
     <div
       data-slot="card-header"
@@ -24,31 +35,52 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+interface CardTitleProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardTitle({ className, children, ...props }: CardTitleProps) {
   return (
     <div
       data-slot="card-title"
       className={cn("leading-none font-semibold", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+interface CardDescriptionProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardDescription({ className, children, ...props }: CardDescriptionProps) {
   return (
     <div
       data-slot="card-description"
       className={cn("text-muted-foreground text-sm", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+interface CardActionProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardAction({ className, children, ...props }: CardActionProps) {
   return (
     <div
       data-slot="card-action"
@@ -57,27 +89,43 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
         className
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+interface CardContentProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardContent({ className, children, ...props }: CardContentProps) {
   return (
     <div
       data-slot="card-content"
       className={cn("px-6", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
-function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+interface CardFooterProps {
+  className?: string;
+  children?: React.ReactNode;
+}
+
+function CardFooter({ className, children, ...props }: CardFooterProps) {
   return (
     <div
       data-slot="card-footer"
       className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
