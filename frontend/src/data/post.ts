@@ -1,8 +1,12 @@
-import { getRequest, postRequest } from "../lib/api-request";
+import { deleteRequest, getRequest, postRequest } from "../lib/api-request";
 
 interface PostType {
     getPost: (token: string, page: number) => Promise<any>;
     setPost: (post: { content: string, pseudo: string }, token: string) => Promise<any>;
+    getUserPosts: (token: string, userId: string) => Promise<any> ;
+    deletePost:(token:string, postID:string) => Promise<any>;
+
+    
 }
 
 let Post: PostType = {
@@ -29,6 +33,26 @@ let Post: PostType = {
       }
     } else {
       console.error('Pseudo or content is missing');
+      return null;
+    }
+  },
+
+  getUserPosts: async function (token: string, userId: string) {
+    try {
+      let data = await getRequest(`user/${userId}/posts`, token);
+      return data;
+    } catch (error) {
+      console.error(`Error fetching posts for user ${userId}:`, error);
+      return null;
+    }
+  },
+
+  deletePost: async function  (token:string, postID:string){
+    try {
+      let data = await deleteRequest(`posts/${postID}`, token);
+      return data;
+    } catch (error) {
+      console.error(`Error fetching posts for user ${postID}:`, error);
       return null;
     }
   }

@@ -12,7 +12,8 @@ import "./index.css";
 import Backoffice from "./routes/Backoffice";
 import ProtectedBackoffice from "./components/protetedBackoffice/protetedBackoffice"
 import ProfilePage from "./routes/Profil";
-
+import ModifyProfile from "./routes/ModifyProfil";
+import UserProfilePage from "./routes/UserProfilePage"; // Importez le composant de la page de profil utilisateur
 
 const router = createBrowserRouter([
   {
@@ -37,7 +38,7 @@ const router = createBrowserRouter([
       },
       {
         path: "home",
-        element:(
+        element: (
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
@@ -45,9 +46,15 @@ const router = createBrowserRouter([
       },
       {
         path: "profil",
-        element:(
-            <ProfilePage />
-        ),
+        element: <ProfilePage />,
+      },
+      {
+        path: "profile/:userId", // Nouvelle route dynamique pour les profils d'autres utilisateurs
+        element: <UserProfilePage />, // Composant pour afficher le profil d'un utilisateur
+      },
+      {
+        path: "modify",
+        element: <ModifyProfile />,
       },
       {
         path: "backoffice",
@@ -56,7 +63,7 @@ const router = createBrowserRouter([
             <Backoffice />
           </ProtectedBackoffice>
         ),
-      }
+      },
     ],
   },
 ]);

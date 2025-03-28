@@ -5,6 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   base: "/",
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": "/src",
+    },
+  },
   preview: {
    port: 5173,
    strictPort: true,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import Post from "../Post/Post";
 import SkeletonPost from "../Post/SkeletonPost"; // Import SkeletonPost
 import { Post as PostData } from "../../data/post";
@@ -9,33 +9,53 @@ interface PostType {
   pseudo: string;
   created_at: string;
   token?: string;
+  user: {
+    pseudo: string;
+    avatar: string;
+    id: string;
+  };
+  like_count: number; // Ajout de la propriété like_count
+  user_liked: boolean; // Ajout de la propriété user_liked
 }
 
 interface AllPostsProps {
   token: string;
 }
 
-export default function AllPosts({ token }: AllPostsProps){
+const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   const fetchPosts = async (page: number) => {
-    setLoading(true); // Set loading to true when fetching posts
+    setLoading(true);
     const data = await PostData.getPost(token, page);
     if (data) {
       setPosts(prevPosts => {
-        const newPosts = data.posts.filter((newPost: PostType) => !prevPosts.some(post => post.id === newPost.id));
+        const newPosts = data.posts.filter(
+          (newPost: PostType) => !prevPosts.some(post => post.id === newPost.id)
+        );
         return [...prevPosts, ...newPosts];
       });
       setHasMore(data.next_page !== null);
     } else {
-      console.error('Error fetching posts');
+      console.error("Error fetching posts");
     }
-    setLoading(false); // Set loading to false after fetching posts
+    setLoading(false);
   };
+
+  const refreshPosts = async () => {
+    setPosts([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    await fetchPosts(1); // Assurez-vous que fetchPosts est asynchrone
+  };
+
+  useImperativeHandle(ref, () => ({
+    refreshPosts,
+  }));
 
   useEffect(() => {
     fetchPosts(currentPage);
@@ -53,19 +73,33 @@ export default function AllPosts({ token }: AllPostsProps){
   useEffect(() => {
     const section = sectionRef.current;
     if (section) {
-      section.addEventListener('scroll', handleScroll);
-      return () => section.removeEventListener('scroll', handleScroll);
+      section.addEventListener("scroll", handleScroll);
+      return () => section.removeEventListener("scroll", handleScroll);
     }
   }, [hasMore]);
 
   return (
-    <section ref={sectionRef} className="h-full flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2">
+    <section
+      ref={sectionRef}
+      className="h-full flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2 mb-14"
+    >
       {posts.map(post => (
-        <Post key={post.id} content={post.content} pseudo={post.pseudo} createdAt={post.created_at} />
+              <Post
+                key={post.id}
+                content={post.content}
+                pseudo={post.user.pseudo}
+                avatar={post.user.avatar}
+                createdAt={post.created_at}
+                userId={post.user.id}
+                postId={post.id.toString()}
+                likeCount={post.like_count} // Passe le nombre de likes
+                userLiked={post.user_liked} // Passe si l'utilisateur a liké
+          />
       ))}
-      {loading && Array.from({ length: 5 }).map((_, index) => (
-        <SkeletonPost key={index} />
-      ))}
+      {loading &&
+        Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}
     </section>
   );
-};
+});
+
+export default AllPosts;

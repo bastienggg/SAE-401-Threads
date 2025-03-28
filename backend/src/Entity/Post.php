@@ -20,8 +20,9 @@ class Post
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $created_at = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $Pseudo = null;
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
 
     public function getId(): ?int
     {
@@ -59,14 +60,14 @@ class Post
         return $this;
     }
 
-    public function getPseudo(): ?string
+    public function getUser(): ?User
     {
-        return $this->Pseudo;
+        return $this->user;
     }
 
-    public function setPseudo(?string $Pseudo): static
+    public function setUser(User $user): static
     {
-        $this->Pseudo = $Pseudo;
+        $this->user = $user;
 
         return $this;
     }

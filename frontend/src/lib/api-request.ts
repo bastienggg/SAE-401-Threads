@@ -31,10 +31,8 @@ const getRequest = async function <T>(uri: string, token?: string): Promise<T | 
   }
 };
 
-const postRequest = async function <T>(uri: string, data: any, token?: string): Promise<T | false> {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
+const postRequest = async function <T>(uri: string, data: any, token?: string): Promise<T> {
+  const headers: HeadersInit = {};
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -43,12 +41,21 @@ const postRequest = async function <T>(uri: string, data: any, token?: string): 
   const options: RequestInit = {
     method: "POST",
     headers: headers,
-    body: JSON.stringify(data),
+    body: data instanceof FormData ? data : JSON.stringify(data),
   };
 
-    const response = await fetch(API_URL + uri, options);
-    return await response.json();
+  if (!(data instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
+  try {
+    const response = await fetch(API_URL + uri, options);
+    const obj = await response.json();
+    return obj; // Return the response object even in case of an error
+  } catch (e) {
+    console.error("Echec de la requête : ", e);
+    throw e; // Throw the error to handle it outside if needed
+  }
 };
 
 const patchRequest = async function <T>(uri: string, data: any, token?: string): Promise<T | false> {
@@ -82,4 +89,35 @@ const patchRequest = async function <T>(uri: string, data: any, token?: string):
   }
 };
 
-export { getRequest, postRequest, patchRequest };
+
+const deleteRequest = async function <T>(uri: string, token?: string): Promise<T | false> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const options: RequestInit = {
+    method: "DELETE",
+    headers: headers,
+  };
+
+  try {
+    const response = await fetch(API_URL + uri, options);
+    if (!response.ok) {
+      console.error(
+        `Erreur de requête : ${response.status} ${response.statusText}`,
+      );
+      return false;
+    }
+    const obj = await response.json();
+    return obj;
+  } catch (e) {
+    console.error("Echec de la requête : ", e);
+    return false;
+  }
+};
+
+export { getRequest, postRequest, patchRequest, deleteRequest };

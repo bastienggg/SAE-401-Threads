@@ -9,7 +9,7 @@ export default function ProfileAvatar({ avatar, pseudo }: ProfileAvatarProps) {
   return (
     <div className="absolute -bottom-12 md:-bottom-16 left-4 md:left-8">
       <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white">
-        <AvatarImage src={avatar || ""} alt={pseudo} />
+      <AvatarImage src={avatar || "/profil/default.jpg"} alt={pseudo} />
         <AvatarFallback className="text-xl md:text-3xl bg-primary text-primary-foreground">
           {pseudo.charAt(0).toUpperCase()}
         </AvatarFallback>

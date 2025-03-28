@@ -30,6 +30,18 @@ class PostRepository extends ServiceEntityRepository
         return new Paginator($query);
     }
 
+    public function paginateByUserOrderedByLatest(int $userId, int $offset, int $limit): Paginator
+    {
+        $query = $this->createQueryBuilder('p')
+            ->where('p.user = :userId')
+            ->setParameter('userId', $userId)
+            ->orderBy('p.created_at', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery();
+    
+        return new Paginator($query);
+    }
     //    /**
     //     * @return Post[] Returns an array of Post objects
     //     */

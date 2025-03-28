@@ -10,6 +10,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class UserController extends AbstractController
 {
@@ -42,26 +45,33 @@ final class UserController extends AbstractController
     public function fetchUser(int $id, UserRepository $userRepository): JsonResponse
     {
         $user = $userRepository->find($id);
-
+    
         if (!$user) {
-            return new JsonResponse(['code' => 'C-4121'],   JsonResponse::HTTP_NOT_FOUND);
+            return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
         }
-
+    
+        // Récupérer le chemin public pour les fichiers
+        $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+        $uploadDir = $this->getParameter('upload_directory');
+    
+        $avatarUrl = $user->getAvatar() ? $baseUrl  . $uploadDir . '/' . $user->getAvatar() : null;
+        $bannerUrl = $user->getBanner() ? $baseUrl . $uploadDir . '/' . $user->getBanner() : null;
+    
         $data = [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
             'pseudo' => $user->getPseudo(),
             'bio' => $user->getBio(),
-            'avatar' => $user->getAvatar(),
+            'avatar' => $avatarUrl,
             'place' => $user->getPlace(),
-            'banner' => $user->getBanner(),
+            'banner' => $bannerUrl,
             'link' => $user->getLink(),
         ];
-
+    
         return new JsonResponse($data);
     }
 
-    #[Route('/users/{id}', name: 'update_user', methods: ['PATCH'])]
+    #[Route('/users/{id}', name: 'update_user', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function updateUser(int $id, Request $request, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
     {
@@ -93,6 +103,104 @@ final class UserController extends AbstractController
         return new JsonResponse(['code' => 'C-1611'], JsonResponse::HTTP_OK);
     }
 
+    #[Route('/users-update/{id}', name: 'update_user', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function updateProfilUser(
+        int $id,
+        Request $request,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        // Récupérer les données textuelles depuis form-data
+        $newPseudo = $request->get('pseudo');
+        $newEmail = $request->get('email');
+        $newBio = $request->get('bio');
+        $newPlace = $request->get('place');
+        $newLink = $request->get('link');
+    
+        // Récupérer les fichiers envoyés
+        $avatar = $request->files->get('avatar');
+        $banner = $request->files->get('banner');
+    
+        $user = $userRepository->find($id);
+    
+        if (!$user) {
+            return new JsonResponse(['code' => 'C-4121', 'message' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+    
+        // Mise à jour des champs textuels uniquement si non null ou non vide
+        if (!empty($newPseudo)) {
+            $user->setPseudo($newPseudo);
+        }
+    
+        if (!empty($newEmail)) {
+            $user->setEmail($newEmail);
+        }
+    
+        if (!empty($newBio)) {
+            $user->setBio($newBio);
+        }
+    
+        if (!empty($newPlace)) {
+            $user->setPlace($newPlace);
+        }
+    
+        if (!empty($newLink)) {
+            $user->setLink($newLink);
+        }
+    
+        $uploadDir = $this->getParameter('upload_directory');
+    
+        // Gestion de l'avatar
+        if ($avatar && $avatar instanceof UploadedFile) {
+            // Supprimer l'ancien avatar s'il existe
+            if ($user->getAvatar()) {
+                $oldAvatarPath = $uploadDir . '/' . $user->getAvatar();
+                if (file_exists($oldAvatarPath)) {
+                    unlink($oldAvatarPath);
+                }
+            }
+    
+            // Enregistrer le nouvel avatar
+            $avatarFileName = uniqid() . '_avatar.' . $avatar->guessExtension();
+    
+            try {
+                $avatar->move($uploadDir, $avatarFileName);
+            } catch (\Exception $e) {
+                return new JsonResponse(['code' => 'C-5002', 'message' => 'Failed to upload avatar: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            }
+    
+            $user->setAvatar($avatarFileName);
+        }
+    
+        // Gestion de la bannière
+        if ($banner && $banner instanceof UploadedFile) {
+            // Supprimer l'ancienne bannière si elle existe
+            if ($user->getBanner()) {
+                $oldBannerPath = $uploadDir . '/' . $user->getBanner();
+                if (file_exists($oldBannerPath)) {
+                    unlink($oldBannerPath);
+                }
+            }
+    
+            // Enregistrer la nouvelle bannière
+            $bannerFileName = uniqid() . '_banner.' . $banner->guessExtension();
+    
+            try {
+                $banner->move($uploadDir, $bannerFileName);
+            } catch (\Exception $e) {
+                return new JsonResponse(['code' => 'C-5003', 'message' => 'Failed to upload banner: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            }
+    
+            $user->setBanner($bannerFileName);
+        }
+    
+        $entityManager->persist($user);
+        $entityManager->flush();
+    
+        return new JsonResponse(['code' => 'C-1611', 'message' => 'User updated successfully'], JsonResponse::HTTP_OK);
+    }
+
     #[Route('/verify-admin', name: 'verify_admin', methods: ['POST'])]
     public function verifyAdmin(Request $request, UserRepository $userRepository): JsonResponse
     {
@@ -115,4 +223,5 @@ final class UserController extends AbstractController
 
         return new JsonResponse(['code' => 'C-1101'], JsonResponse::HTTP_OK);
     }
+
 }

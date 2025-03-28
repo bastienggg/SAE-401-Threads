@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NewPost from '../NewPost/NewPost';
+import Logout from '../logout/logout';
 
 interface NavbarProps {
   onPostCreated: () => void;
@@ -8,13 +9,12 @@ interface NavbarProps {
 
 export default function Navbar({ onPostCreated }: NavbarProps) {
   const [isNewPostVisible, setNewPostVisible] = useState(false);
+  const [isLogoutVisible, setLogoutVisible] = useState(false); // Nouvel état pour afficher le composant Logout
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleIconClick = () => {
-    if (location.pathname === '/home') {
       setNewPostVisible(true);
-    }
   };
 
   const handleCloseNewPost = () => {
@@ -25,16 +25,34 @@ export default function Navbar({ onPostCreated }: NavbarProps) {
     navigate(path);
   };
 
+  const handleLogoutClick = () => {
+    setLogoutVisible(true); // Affiche le composant Logout
+    setTimeout(() => {
+      setLogoutVisible(false); // Cache le composant Logout après 2 secondes
+      sessionStorage.clear(); // Supprime tout le contenu de sessionStorage
+      navigateTo('/'); // Redirige vers la page racine
+    }, 2000);
+  };
+
   return (
     <>
-      <div className="flex flex-row item-center p-4 h-14 justify-between w-full sticky bg-white b-0 z-50 border-t-2 border-t-neutral-900">
-        <img src="./src/assets/svg/feed.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/home')} />
-        <img src="./src/assets/svg/explore.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/explore')} />
-        <img src="./src/assets/svg/write.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleIconClick} />
-        <img src="./src/assets/svg/heart.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/notifications')} />
-        <img src="./src/assets/svg/Rectangle_3.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/profil')} />
-      </div>
-      {isNewPostVisible && <NewPost onClose={handleCloseNewPost} onPostCreated={() => { onPostCreated(); handleCloseNewPost(); }} />}
-    </>
+    <div className="flex flex-row items-center p-4 h-14 justify-between w-full fixed bottom-0 bg-white z-50 border-t-2 border-t-neutral-900">
+      <img src="/public/svg/feed.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/home')} />
+      <img src="/public/svg/explore.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/explore')} />
+      <img src="/public/svg/write.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleIconClick} />
+      <img src="/public/svg/Rectangle_3.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/profil')} />
+      <img src="/public/svg/logout.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleLogoutClick} />
+    </div>
+    {isNewPostVisible && (
+      <NewPost 
+       onClose={handleCloseNewPost} 
+       onPostCreated={() => { 
+       onPostCreated(); // Appelle la fonction de rafraîchissement
+        handleCloseNewPost(); 
+       }} 
+      />
+      )}
+    {isLogoutVisible && <Logout />}
+  </>
   );
 }

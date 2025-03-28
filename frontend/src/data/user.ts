@@ -5,6 +5,7 @@ interface UserType {
     getAllUsers: (token: string) => Promise<any>;
     Usermodify: (token: string, userId: string, dataUser: { pseudo: string, email: string }) => Promise<any>;
     getUserInfos: (token: string, userId: string) => Promise<any>;
+    userUpdate: (token: string, userId: string, formData: FormData) => Promise<any>;
 }
 
 let User: UserType = {
@@ -25,6 +26,11 @@ let User: UserType = {
     },
     getUserInfos: async function (token, userId) {
         let data = await getRequest(`users/${userId}`, token);
+        console.log('Response data:', data); // Log the response data
+        return data;
+    },
+    userUpdate: async function (token, userId, formData) {
+        let data = await postRequest(`users-update/${userId}`, formData, token);
         console.log('Response data:', data); // Log the response data
         return data;
     }

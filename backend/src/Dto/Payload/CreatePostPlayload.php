@@ -1,20 +1,12 @@
 <?php
-
 namespace App\Dto\Payload;
-
-use Symfony\Component\Validator\Constraints as Assert;
 
 class CreatePostPayload
 {
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 255)]
-    private $content;
+    private string $content;
+    private ?int $userId = null; // Ajout de la propriété userId
 
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 255)]
-    public string $pseudo;
-
-    public function getContent(): ?string
+    public function getContent(): string
     {
         return $this->content;
     }
@@ -24,13 +16,15 @@ class CreatePostPayload
         $this->content = $content;
         return $this;
     }
-    public function getPseudo(): string
+
+    public function getUserId(): ?int
     {
-        return $this->pseudo;
+        return $this->userId;
     }
 
-    public function setPseudo(string $pseudo): void
+    public function setUserId(int $userId): self
     {
-        $this->pseudo = $pseudo;
+        $this->userId = $userId;
+        return $this;
     }
 }

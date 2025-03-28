@@ -24,7 +24,7 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
     console.log('Sending post data:', data); // Log the data being sent
     await Post.setPost(data, sessionStorage.getItem('Token') as string);
     setIsVisible(false);
-    onPostCreated(); // Ajoutez cet appel
+    onPostCreated(); // Appelle la fonction de rafraîchissement
   };
 
   return (
