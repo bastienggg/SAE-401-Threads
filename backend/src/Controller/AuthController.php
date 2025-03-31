@@ -28,22 +28,23 @@ class AuthController extends AbstractController
     
         if (!$email || !$password) {
             $logger->error('Email and password are required');
-            return new JsonResponse(['code' => 'C-3111 '], JsonResponse::HTTP_BAD_REQUEST);
+            return new JsonResponse(['code' => 'C-3111'], JsonResponse::HTTP_BAD_REQUEST);
         }
     
         $user = $userRepository->findOneBy(['email' => $email]);
     
         if (!$user) {
-            // Log the error
             $logger->error('Invalid email');
-            // Retourner un message d'erreur personnalisé pour un email invalide
             return new JsonResponse(['code' => 'C-3121'], JsonResponse::HTTP_UNAUTHORIZED);
         }
     
+        if ($user->isBlocked()) {
+            $logger->error('User is blocked');
+            return new JsonResponse(['code' => 'C-3132'], JsonResponse::HTTP_FORBIDDEN);
+        }
+    
         if (!$passwordHasher->isPasswordValid($user, $password)) {
-            // Log the error
             $logger->error('Invalid password');
-            // Retourner un message d'erreur personnalisé pour un mot de passe invalide
             return new JsonResponse(['code' => 'C-3131'], JsonResponse::HTTP_UNAUTHORIZED);
         }
     

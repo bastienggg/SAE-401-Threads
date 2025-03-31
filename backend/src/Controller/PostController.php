@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Dto\Payload\CreatePostPayload;
 use App\Service\PostService;
 use App\Entity\Post;
+use App\Entity\Like;
+use App\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -44,11 +46,11 @@ final class PostController extends AbstractController
         $posts = array_map(function ($post) use ($baseUrl, $uploadDir, $likeRepository, $user) {
             $userEntity = $post->getUser();
             $avatarUrl = $userEntity->getAvatar() ? $baseUrl . $uploadDir . '/' . $userEntity->getAvatar() : null;
-    
+        
             // Récupérer le nombre de likes et vérifier si l'utilisateur a liké
             $likeCount = $likeRepository->count(['post' => $post]);
             $userLiked = $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null;
-    
+        
             return [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
@@ -57,6 +59,7 @@ final class PostController extends AbstractController
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
                     'pseudo' => $userEntity->getPseudo(),
+                    'is_blocked' => $userEntity->isBlocked(), // Ajout de cette ligne
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
@@ -71,6 +74,7 @@ final class PostController extends AbstractController
     }
     
     #[Route('/user/{id}/posts', name: 'user.posts', methods: ['GET'], format: 'json')]
+    #[IsGranted('ROLE_USER')]
     public function getUserPosts(
         int $id,
         Request $request,
@@ -107,6 +111,7 @@ final class PostController extends AbstractController
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
                     'pseudo' => $userEntity->getPseudo(),
+                    'is_blocked' => $userEntity->isBlocked(), // Ajout de cette ligne
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
@@ -129,6 +134,17 @@ final class PostController extends AbstractController
         ValidatorInterface $validator,
         PostService $postService
     ): JsonResponse {
+        // Récupérer l'utilisateur connecté
+        $user = $this->getUser();
+        if (!$user || !method_exists($user, 'getId')) {
+            return $this->json(['error' => 'User not authenticated or invalid user object'], Response::HTTP_UNAUTHORIZED);
+        }
+    
+        // Vérifier si l'utilisateur est bloqué
+        if ($user->isBlocked()) {
+            return $this->json(['error' => 'User is blocked', 'code' => 'C-3132'], Response::HTTP_FORBIDDEN);
+        }
+    
         // Désérialiser le JSON en objet CreatePostPayload
         try {
             $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
@@ -147,12 +163,6 @@ final class PostController extends AbstractController
             return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
     
-        // Récupérer l'utilisateur connecté
-        $user = $this->getUser();
-        if (!$user || !method_exists($user, 'getId')) {
-            return $this->json(['error' => 'User not authenticated or invalid user object'], Response::HTTP_UNAUTHORIZED);
-        }
-    
         // Ajouter l'ID de l'utilisateur au payload
         $payload->setUserId($user->getId());
     
@@ -165,13 +175,13 @@ final class PostController extends AbstractController
     
         return $this->json(['message' => 'Post created successfully'], Response::HTTP_CREATED);
     }
-
     
     #[Route('/posts/{id}', name: 'posts.delete', methods: ['DELETE'], format: 'json')]
     #[IsGranted('ROLE_USER')]
     public function deletePost(
         int $id,
         PostRepository $postRepository,
+        LikeRepository $likeRepository,
         EntityManagerInterface $entityManager
     ): JsonResponse {
         // Récupérer le post à supprimer
@@ -187,8 +197,14 @@ final class PostController extends AbstractController
             return $this->json(['error' => 'You are not authorized to delete this post'], Response::HTTP_FORBIDDEN);
         }
     
-        // Supprimer le post
+        // Supprimer les likes associés au post
         try {
+            $likes = $likeRepository->findBy(['post' => $post]);
+            foreach ($likes as $like) {
+                $entityManager->remove($like);
+            }
+    
+            // Supprimer le post
             $entityManager->remove($post);
             $entityManager->flush();
         } catch (\Exception $e) {

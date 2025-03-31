@@ -7,10 +7,12 @@ import ProfileInfo from "../components/profile-info/profile-info";
 import AllPostsUser from "../components/AllPostUser/AllPostUser";
 import Header from "../components/ui/header";
 import Navbar from "../components/Navbar/Navbar";
+import ProfileSkeleton from "../components/profil-squeleton/ProfileSkeleton";
 
 import { User } from "../data/user";
+
 export default function UserProfilePage() {
-    const { userId } = useParams(); // Récupère l'ID de l'utilisateur depuis l'URL
+    const { userId } = useParams();
     const [user, setUser] = useState({
         email: "",
         pseudo: "",
@@ -19,11 +21,13 @@ export default function UserProfilePage() {
         place: "",
         banner: "",
         link: "",
+        followersCount: 0, // Ajout du compteur d'abonnés
+        isFollowing: false, // Ajout de la propriété isFollowing
     });
     const [loading, setLoading] = useState(true);
 
-    const currentUserId = sessionStorage.getItem("id"); // ID de l'utilisateur connecté
-    const isCurrentUser = currentUserId === userId; // Vérifie si c'est le profil de l'utilisateur connecté
+    const currentUserId = sessionStorage.getItem("id");
+    const isCurrentUser = currentUserId === userId;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -38,6 +42,8 @@ export default function UserProfilePage() {
                 place: data.place,
                 banner: data.banner,
                 link: data.link,
+                followersCount: data.followersCount, // Récupération du compteur
+                isFollowing: data.isFollowing, // Récupération de l'état d'abonnement
             });
             setLoading(false);
         };
@@ -46,7 +52,7 @@ export default function UserProfilePage() {
     }, [userId]);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <ProfileSkeleton />;
     }
 
     return (
@@ -62,7 +68,10 @@ export default function UserProfilePage() {
                     <ProfileHeader
                         pseudo={user.pseudo}
                         email={user.email}
-                        isCurrentUser={isCurrentUser} // Passe la propriété isCurrentUser
+                        isCurrentUser={isCurrentUser}
+                        followersCount={user.followersCount} // Passage du compteur
+                        isFollowing={user.isFollowing} // Passage de l'état d'abonnement
+                        userId={userId || ""} // Ajout de l'ID utilisateur
                     />
                     <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
                 </div>

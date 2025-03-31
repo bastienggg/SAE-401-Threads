@@ -25,6 +25,32 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->getResult();
     }
 
+    public function countFollowers(int $userId): int
+    {
+        return $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(f.id)')
+            ->from('App\Entity\Follow', 'f')
+            ->where('f.profile = :userId') // "profile" correspond à l'utilisateur suivi
+            ->setParameter('userId', $userId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function isFollowing(int $followerId, int $profileId): bool
+    {
+        $result = $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(f.id)')
+            ->from('App\Entity\Follow', 'f')
+            ->where('f.follower = :followerId') // "follower" correspond à l'utilisateur qui suit
+            ->andWhere('f.profile = :profileId') // "profile" correspond à l'utilisateur suivi
+            ->setParameter('followerId', $followerId)
+            ->setParameter('profileId', $profileId)
+            ->getQuery()
+            ->getSingleScalarResult();
+    
+        return $result > 0;
+    }
+
     /**
      * Used to upgrade (rehash) the user's password automatically over time.
      */

@@ -12,7 +12,8 @@ interface PostProps {
     userId: string;
     postId: string;
     likeCount: number; // Nouvelle prop pour le nombre de likes
-    userLiked: boolean; // Nouvelle prop pour indiquer si l'utilisateur a liké
+    userLiked: boolean;
+    isBlocked: boolean;
 }
 
 function timeSince(date: Date) {
@@ -41,7 +42,7 @@ function timeSince(date: Date) {
     return Math.floor(seconds) + " seconds";
 }
 
-export default function Post({ content, createdAt, pseudo, avatar, userId, postId, likeCount, userLiked }: PostProps) {
+export default function Post({ content, createdAt, pseudo, avatar, userId, postId, likeCount, userLiked, isBlocked }: PostProps) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const [isLiked, setIsLiked] = useState(userLiked); // Initialisé avec la valeur de userLiked
@@ -136,28 +137,36 @@ export default function Post({ content, createdAt, pseudo, avatar, userId, postI
                         </p>
                         <p className="text-xs text-neutral-700">{timeSince(new Date(createdAt))} ago</p>
                     </div>
-                    <p>{content}</p>
+                    {isBlocked ? (
+                        <p className="text-red-500 font-bold">
+                            Cet utilisateur a été temporairement bloqué.
+                        </p>
+                    ) : (
+                        <p>{content}</p>
+                    )}
                 </div>
             </div>
-            <div className="flex justify-between items-center mt-2">
-                <div className="flex items-center gap-2">
-                    <img
-                        src={isLiked ? "/public/svg/heart-filled.svg" : "/public/svg/heart.svg"}
-                        className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
-                        alt={isLiked ? "Unlike" : "Like"}
-                        onClick={isLiked ? handleUnlike : handleLike}
-                    />
-                    <span className="text-sm text-neutral-700">{likes}</span>
+            {!isBlocked && (
+                <div className="flex justify-between items-center mt-2">
+                    <div className="flex items-center gap-2">
+                        <img
+                            src={isLiked ? "/public/svg/heart-filled.svg" : "/public/svg/heart.svg"}
+                            className="w-5 h-5 hover:cursor-pointer hover:scale-110             transition-transform duration-200 ease-in-out"
+                            alt={isLiked ? "Unlike" : "Like"}
+                            onClick={isLiked ? handleUnlike : handleLike}
+                        />
+                        <span className="text-sm text-neutral-700">{likes}</span>
+                    </div>
+                    {isCurrentUser && (
+                        <img
+                            src="/public/svg/trash.svg"
+                            className="w-5 h-5 hover:cursor-pointer hover:scale-110             transition-transform duration-200 ease-in-out"
+                            alt="Supprimer"
+                            onClick={() => setShowConfirm(true)}
+                        />
+                    )}
                 </div>
-                {isCurrentUser && (
-                    <img
-                        src="/public/svg/trash.svg"
-                        className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
-                        alt="Supprimer"
-                        onClick={() => setShowConfirm(true)}
-                    />
-                )}
-            </div>
+            )}
             {showConfirm && (
                 <ConfirmDelete
                     onConfirm={() => {

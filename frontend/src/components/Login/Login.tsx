@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "../ui/card";
-import { Loader2 } from "lucide-react"; // Import the Loader2 component
+import { Loader2 } from "lucide-react";
+import { AccountBlockedPopup } from "../AccountBlockedPopup/AccountBlockedPopup"; // Import the Loader2 component
 
 import { Auth } from "../../data/auth";
 
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false); // Add loading state
   const [resendEmailLoading, setResendEmailLoading] = useState(false); // Add resend email loading state
+  const [accountBlocked, setAccountBlocked] = useState(false); // New state for account blocked popup
 
   const navigate = useNavigate();
 
@@ -29,38 +31,41 @@ export default function LoginPage() {
 
     const fetchPosts = async () => {
       let credential = { email, password };
-      console.log('credential:', credential);
+      console.log("credential:", credential);
       const data = await Auth.login(credential);
-        if (data.code === "C-1101") {
-          sessionStorage.setItem('Token', data.token);
-          sessionStorage.setItem('Pseudo', data.pseudo);
-          sessionStorage.setItem('id', data.id);
-          navigate('/home');}
-        else if (data.code === "C-0001") {
-          sessionStorage.setItem('Token', data.token);
-          sessionStorage.setItem('id', data.id);
-          sessionStorage.setItem('Pseudo', data.pseudo);
-          navigate('/backoffice');
-        } else if (data.code === "C-3121") {
-          setEmailError(true);
-          setLoading(false);
-        } else if (data.code === "C-3111") {
-          setEmailError(true);
-          setPasswordError(true);
-          setLoading(false);
-        } else if (data.code === "C-3131") {
-          setPasswordError(true);
-          setLoading(false);
-        } else if (data.code === "C-3141") {
-          setEmailNotVerifiedError(true);
-          setLoading(false);
-        } else {
-          setPasswordError(false);
-          setEmailError(false);
-          setLoading(false);
+      if (data.code === "C-1101") {
+        sessionStorage.setItem("Token", data.token);
+        sessionStorage.setItem("Pseudo", data.pseudo);
+        sessionStorage.setItem("id", data.id);
+        navigate("/home");
+      } else if (data.code === "C-0001") {
+        sessionStorage.setItem("Token", data.token);
+        sessionStorage.setItem("id", data.id);
+        sessionStorage.setItem("Pseudo", data.pseudo);
+        navigate("/backoffice");
+      } else if (data.code === "C-3121") {
+        setEmailError(true);
+        setLoading(false);
+      } else if (data.code === "C-3111") {
+        setEmailError(true);
+        setPasswordError(true);
+        setLoading(false);
+      } else if (data.code === "C-3131") {
+        setPasswordError(true);
+        setLoading(false);
+      } else if (data.code === "C-3141") {
+        setEmailNotVerifiedError(true);
+        setLoading(false);
+      } else if (data.code === "C-3132") {
+        setAccountBlocked(true); // Show the account blocked popup
+        setLoading(false);
+      } else {
+        setPasswordError(false);
+        setEmailError(false);
+        setLoading(false);
       }
     };
-  
+
     fetchPosts();
   };
 
@@ -91,6 +96,10 @@ export default function LoginPage() {
   };
 
   return (
+    <>
+    {accountBlocked && (
+      <AccountBlockedPopup onClose={() => setAccountBlocked(false)} />
+    )}
     <Card className="w-10/12 md:w-1/3">
       <CardHeader>
         <CardTitle>Login</CardTitle>
@@ -120,8 +129,8 @@ export default function LoginPage() {
               {emailNotVerifiedError && (
                 <div>
                   <p className="text-red-500 text-sm">Email non vérifié</p>
-                  <Button 
-                    onClick={handleResendEmail} 
+                  <Button
+                    onClick={handleResendEmail}
                     disabled={resendEmailLoading}
                     className="mt-2 hover:cursor-pointer"
                   >
@@ -177,5 +186,6 @@ export default function LoginPage() {
         </form>
       </CardContent>
     </Card>
+  </>
   );
 }

@@ -6,6 +6,7 @@
 parameters:
     upload_directory: 'uploads'
     base_url: 'http://localhost:8080/'
+    images_directory: '%kernel.project_dir%/public/uploads/images'
 
 services:
     # default configuration for services in *this* file

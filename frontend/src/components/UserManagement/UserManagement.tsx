@@ -1,30 +1,33 @@
-import { useState, useEffect } from "react"
-import { Search, Edit, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { EditUserDialog } from "../userDialogue/Userdialogue"
-import { User } from "../../data/user"
-import { UserManagementSqueleton } from "./UserManagementSqueleton"
+import { useState, useEffect } from "react";
+import { Search, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { EditUserDialog } from "../userDialogue/Userdialogue";
+import { User } from "../../data/user";
+import { UserManagementSqueleton } from "./UserManagementSqueleton";
+import { Switch } from "../ui/switch";
+import { Blocked } from "../../data/blocked";
 
 interface User {
-  id: number
-  pseudo: string
-  email: string
-  isVerified: boolean
+  id: number;
+  pseudo: string;
+  email: string;
+  isVerified: boolean;
+  isBlocked?: boolean; // Optional property to avoid runtime errors
 }
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const usersPerPage = 7
+  const usersPerPage = 7;
 
   const fetchUsers = async () => {
-    let token = sessionStorage.getItem('Token');
+    let token = sessionStorage.getItem("Token");
     let fetchedUsers = token ? await User.getAllUsers(token) : [];
     setUsers(fetchedUsers);
     setLoading(false);
@@ -38,29 +41,54 @@ export default function UserManagement() {
   const filteredUsers = users.filter(
     (user) =>
       user.pseudo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Calculate pagination
-  const indexOfLastUser = currentPage * usersPerPage
-  const indexOfFirstUser = indexOfLastUser - usersPerPage
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const handleEditClick = (user: User) => {
-    setCurrentUser(user)
-    setIsEditDialogOpen(true)
-  }
+    setCurrentUser(user);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleToggleBlock = async (user: User) => {
+    const token = sessionStorage.getItem("Token");
+    if (!token) {
+      console.error("Token not found");
+      return;
+    }
+
+    try {
+      if (user.isBlocked) {
+        await Blocked.UnblockUser(token, user.id.toString());
+      } else {
+        await Blocked.BlockUser(token, user.id.toString());
+      }
+
+      // Mettre à jour l'état local après le changement
+      setUsers(
+        users.map((u) =>
+          u.id === user.id ? { ...u, isBlocked: !user.isBlocked } : u
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling block status:", error);
+    }
+  };
 
   const handleSaveEdit = (updatedUser: User) => {
     // Update the user in our state
-    setUsers(users.map((user) => (user.id === updatedUser.id ? updatedUser : user)))
-  }
+    setUsers(users.map((user) => (user.id === updatedUser.id ? updatedUser : user)));
+  };
 
   const handleCloseDialog = () => {
     setIsEditDialogOpen(false);
     fetchUsers(); // Refresh users after closing the dialog
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -86,19 +114,42 @@ export default function UserManagement() {
             <table className="w-full caption-bottom text-sm">
               <thead className="[&_tr]:border-b">
                 <tr>
-                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">ID</th>
-                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Pseudo</th>
-                  <th className="text-foreground h-10 px-2 text-right align-middle font-medium whitespace-nowrap">Actions</th>
+                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">
+                    ID
+                  </th>
+                  <th className="text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap">
+                    Pseudo
+                  </th>
+                  <th className="text-foreground h-10 px-2 text-center align-middle font-medium whitespace-nowrap">
+                    Bloqué
+                  </th>
+                  <th className="text-foreground h-10 px-2 text-right align-middle font-medium whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
                 {currentUsers.length > 0 ? (
                   currentUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors">
+                    <tr
+                      key={user.id}
+                      className="hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors"
+                    >
                       <td className="p-2 align-middle whitespace-nowrap">{user.id}</td>
                       <td className="p-2 align-middle whitespace-nowrap">{user.pseudo}</td>
+                      <td className="p-2 align-middle whitespace-nowrap text-center">
+                        <Switch
+                          checked={user.isBlocked || false}
+                          onChange={() => handleToggleBlock(user)}
+                        />
+                      </td>
                       <td className="p-2 align-middle whitespace-nowrap text-right">
-                        <Button variant="ghost" className="hover:cursor-pointer" size="default" onClick={() => handleEditClick(user)}>
+                        <Button
+                          variant="ghost"
+                          className="hover:cursor-pointer"
+                          size="default"
+                          onClick={() => handleEditClick(user)}
+                        >
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Modifier</span>
                         </Button>
@@ -107,7 +158,9 @@ export default function UserManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="text-center py-4">Aucun utilisateur trouvé</td>
+                    <td colSpan={4} className="text-center py-4">
+                      Aucun utilisateur trouvé
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -118,7 +171,8 @@ export default function UserManagement() {
           {filteredUsers.length > 0 && (
             <div className="flex items-center justify-between px-4 py-2 border-t">
               <div className="text-sm text-muted-foreground">
-                {indexOfFirstUser + 1} à {Math.min(indexOfLastUser, filteredUsers.length)} sur {filteredUsers.length} utilisateurs
+                {indexOfFirstUser + 1} à {Math.min(indexOfLastUser, filteredUsers.length)} sur{" "}
+                {filteredUsers.length} utilisateurs
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -156,5 +210,5 @@ export default function UserManagement() {
         onSave={handleSaveEdit}
       />
     </div>
-  )
+  );
 }

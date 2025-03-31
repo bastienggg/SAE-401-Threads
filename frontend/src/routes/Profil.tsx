@@ -21,6 +21,8 @@ export default function ProfilePage() {
     place: '',
     banner: '',
     link: '',
+    followersCount: 0, // Ajout du compteur d'abonnés
+    isFollowing: false, // Ajout de la propriété isFollowing
   });
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // Ajout d'une clé pour forcer le rafraîchissement
@@ -40,6 +42,8 @@ export default function ProfilePage() {
         place: data.place,
         banner: data.banner,
         link: data.link,
+        followersCount: data.followersCount, // Récupération du compteur
+        isFollowing: data.isFollowing, // Récupération de l'état d'abonnement
       });
       setLoading(false);
     };
@@ -69,6 +73,9 @@ export default function ProfilePage() {
             pseudo={user.pseudo} 
             email={user.email} 
             isCurrentUser={true} 
+            followersCount={user.followersCount} // Passage du compteur
+            isFollowing={user.isFollowing} // Passage de l'état d'abonnement
+            userId={sessionStorage.getItem("id") || ''} // Ajout de l'ID utilisateur
           />
           <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
         </div>
