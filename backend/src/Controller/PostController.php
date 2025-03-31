@@ -43,13 +43,20 @@ final class PostController extends AbstractController
         $uploadDir = $this->getParameter('upload_directory');
         $user = $this->getUser();
     
-        $posts = array_map(function ($post) use ($baseUrl, $uploadDir, $likeRepository, $user) {
+        $posts = array_map(function ($post) use ($baseUrl, $likeRepository, $user) {
             $userEntity = $post->getUser();
-            $avatarUrl = $userEntity->getAvatar() ? $baseUrl . $uploadDir . '/' . $userEntity->getAvatar() : null;
+            $avatarUrl = $userEntity->getAvatar() ? $baseUrl . '/uploads/' . $userEntity->getAvatar() : null;
+            $bannerUrl = $userEntity->getBanner() ? $baseUrl . '/uploads/' . $userEntity->getBanner() : null;
         
             // Récupérer le nombre de likes et vérifier si l'utilisateur a liké
             $likeCount = $likeRepository->count(['post' => $post]);
             $userLiked = $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null;
+        
+            // Générer les URLs pour les pictures
+            $pictures = array_map(fn($picture) => $baseUrl . '/uploads/' . $picture, $post->getPictures() ?? []);
+        
+            // Générer les URLs pour les videos
+            $videos = array_map(fn($video) => $baseUrl . '/uploads/' . $video, $post->getVideos() ?? []);
         
             return [
                 'id' => $post->getId(),
@@ -58,11 +65,14 @@ final class PostController extends AbstractController
                 'user' => [
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
+                    'banner' => $bannerUrl,
                     'pseudo' => $userEntity->getPseudo(),
-                    'is_blocked' => $userEntity->isBlocked(), // Ajout de cette ligne
+                    'is_blocked' => $userEntity->isBlocked(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
+                'pictures' => $pictures,
+                'videos' => $videos,
             ];
         }, iterator_to_array($paginator));
     
@@ -95,14 +105,21 @@ final class PostController extends AbstractController
         $uploadDir = $this->getParameter('upload_directory');
         $user = $this->getUser();
     
-        $posts = array_map(function ($post) use ($baseUrl, $uploadDir, $likeRepository, $user) {
+        $posts = array_map(function ($post) use ($baseUrl, $likeRepository, $user) {
             $userEntity = $post->getUser();
-            $avatarUrl = $userEntity->getAvatar() ? $baseUrl . $uploadDir . '/' . $userEntity->getAvatar() : null;
-    
+            $avatarUrl = $userEntity->getAvatar() ? $baseUrl . '/uploads/' . $userEntity->getAvatar() : null;
+            $bannerUrl = $userEntity->getBanner() ? $baseUrl . '/uploads/' . $userEntity->getBanner() : null;
+        
             // Récupérer le nombre de likes et vérifier si l'utilisateur a liké
             $likeCount = $likeRepository->count(['post' => $post]);
             $userLiked = $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null;
-    
+        
+            // Générer les URLs pour les pictures
+            $pictures = array_map(fn($picture) => $baseUrl . '/uploads/' . $picture, $post->getPictures() ?? []);
+        
+            // Générer les URLs pour les videos
+            $videos = array_map(fn($video) => $baseUrl . '/uploads/' . $video, $post->getVideos() ?? []);
+        
             return [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
@@ -110,11 +127,14 @@ final class PostController extends AbstractController
                 'user' => [
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
+                    'banner' => $bannerUrl,
                     'pseudo' => $userEntity->getPseudo(),
-                    'is_blocked' => $userEntity->isBlocked(), // Ajout de cette ligne
+                    'is_blocked' => $userEntity->isBlocked(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
+                'pictures' => $pictures,
+                'videos' => $videos,
             ];
         }, iterator_to_array($paginator));
     
@@ -130,43 +150,73 @@ final class PostController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function createPost(
         Request $request,
-        SerializerInterface $serializer,
         ValidatorInterface $validator,
         PostService $postService
     ): JsonResponse {
-        // Récupérer l'utilisateur connecté
+
+        header('Access-Control-Allow-Origin: http://localhost:8090');
+
         $user = $this->getUser();
         if (!$user || !method_exists($user, 'getId')) {
             return $this->json(['error' => 'User not authenticated or invalid user object'], Response::HTTP_UNAUTHORIZED);
         }
     
-        // Vérifier si l'utilisateur est bloqué
         if ($user->isBlocked()) {
             return $this->json(['error' => 'User is blocked', 'code' => 'C-3132'], Response::HTTP_FORBIDDEN);
         }
     
-        // Désérialiser le JSON en objet CreatePostPayload
-        try {
-            $payload = $serializer->deserialize($request->getContent(), CreatePostPayload::class, 'json');
-        } catch (\Exception $e) {
-            return $this->json(['error' => 'Invalid JSON format'], Response::HTTP_BAD_REQUEST);
+        $content = $request->request->get('content');
+        $pictures = $request->files->get('pictures', []); // Récupérer les fichiers
+    
+        dump($pictures);
+        // Assurez-vous que $pictures est toujours un tableau
+        if (!is_array($pictures)) {
+            $pictures = [$pictures];
         }
     
-        // Vérifier que $payload est bien une instance de CreatePostPayload
-        if (!$payload instanceof CreatePostPayload) {
-            return $this->json(['error' => 'Invalid payload object'], Response::HTTP_BAD_REQUEST);
+        $errors = [];
+        $picturePaths = [];
+        foreach ($pictures as $picture) {
+            if ($picture && $picture->isValid()) {
+                $uploadDir = $this->getParameter('upload_directory');
+                $pictureName = uniqid() . '.' . $picture->guessExtension();
+                $picture->move($uploadDir, $pictureName);
+                $picturePaths[] = $pictureName;
+            } else {
+                $errors[] = 'Invalid picture upload.';
+            }
+        }
+
+        
+    
+        // Gestion des vidéos (similaire aux images)
+        $videos = $request->files->get('videos', []);
+        if (!is_array($videos)) {
+            $videos = [$videos];
         }
     
-        // Valider les données
-        $errors = $validator->validate($payload);
-        if (count($errors) > 0) {
-            return $this->json(['errors' => (string) $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
+        $videoPaths = [];
+        foreach ($videos as $video) {
+            if ($video && $video->isValid()) {
+                $uploadDir = $this->getParameter('upload_directory');
+                $videoName = uniqid() . '.' . $video->guessExtension();
+                $video->move($uploadDir, $videoName);
+                $videoPaths[] = $videoName;
+            } else {
+                $errors[] = 'Invalid video upload.';
+            }
         }
     
-        // Ajouter l'ID de l'utilisateur au payload
+        if (!empty($errors)) {
+            return $this->json(['errors' => $errors], Response::HTTP_BAD_REQUEST);
+        }
+    
+        $payload = new CreatePostPayload();
         $payload->setUserId($user->getId());
+        $payload->setContent($content);
+        $payload->setPictures($picturePaths);
+        $payload->setVideos($videoPaths);
     
-        // Créer le post
         try {
             $postService->create($payload);
         } catch (\Exception $e) {

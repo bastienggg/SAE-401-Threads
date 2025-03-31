@@ -17,6 +17,7 @@ interface PostType {
   };
   like_count: number; // Ajout de la propriété like_count
   user_liked: boolean; // Ajout de la propriété user_liked
+  pictures?: string[]; // Ajout de la propriété picture
 }
 
 interface AllPostsProps {
@@ -97,18 +98,19 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
       className="h-full flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2 mb-14"
     >
       {posts.map(post => (
-    <Post
-        key={post.id}
-        content={post.content}
-        pseudo={post.user.pseudo}
-        avatar={post.user.avatar}
-        createdAt={post.created_at}
-        userId={post.user.id}
-        postId={post.id.toString()}
-        likeCount={post.like_count} // Passe le nombre de likes
-        userLiked={post.user_liked} // Passe si l'utilisateur a liké
-        isBlocked={post.user.is_blocked} // Passe si l'utilisateur est bloqué
-    />
+        <Post
+            key={post.id}
+            content={post.content}
+            pseudo={post.user.pseudo}
+            avatar={post.user.avatar}
+            createdAt={post.created_at}
+            userId={post.user.id}
+            postId={post.id.toString()}
+            likeCount={post.like_count}
+            userLiked={post.user_liked}
+            isBlocked={post.user.is_blocked}
+            pictures={post.pictures} // Passer les images ici
+        />
       ))}
       {loading &&
         Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}

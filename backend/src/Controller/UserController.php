@@ -42,60 +42,150 @@ final class UserController extends AbstractController
         return new JsonResponse($data);
     }
 
-    
-    
-    #[Route('/users/{id}', name: 'get_user', methods: ['GET'])]
+    #[Route('/users-update/{id}', name: 'update_user', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function fetchUser(
-        int $id,
-        Request $request,
-        UserRepository $userRepository,
-        UrlGeneratorInterface $urlGenerator
-    ): JsonResponse {
-        $user = $userRepository->find($id);
+     public function updateProfilUser(
+         int $id,
+         Request $request,
+         UserRepository $userRepository,
+         EntityManagerInterface $entityManager
+     ): JsonResponse {
+         // Récupérer les données textuelles depuis form-data
+         $newPseudo = $request->get('pseudo');
+         $newEmail = $request->get('email');
+         $newBio = $request->get('bio');
+         $newPlace = $request->get('place');
+         $newLink = $request->get('link');
+     
+         // Récupérer les fichiers envoyés
+         $avatar = $request->files->get('avatar');
+         $banner = $request->files->get('banner');
+     
+         $user = $userRepository->find($id);
+     
+         if (!$user) {
+             return new JsonResponse(['code' => 'C-4121', 'message' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+         }
+     
+         // Mise à jour des champs textuels uniquement si non null ou non vide
+         if (!empty($newPseudo)) {
+             $user->setPseudo($newPseudo);
+         }
+     
+         if (!empty($newEmail)) {
+             $user->setEmail($newEmail);
+         }
+     
+         if (!empty($newBio)) {
+             $user->setBio($newBio);
+         }
+     
+         if (!empty($newPlace)) {
+             $user->setPlace($newPlace);
+         }
+     
+         if (!empty($newLink)) {
+             $user->setLink($newLink);
+         }
+     
+         $uploadDir = $this->getParameter('upload_directory');
+     
+         // Gestion de l'avatar
+         if ($avatar && $avatar instanceof UploadedFile) {
+             // Supprimer l'ancien avatar s'il existe
+             if ($user->getAvatar()) {
+                 $oldAvatarPath = $uploadDir . '/' . $user->getAvatar();
+                 if (file_exists($oldAvatarPath)) {
+                     unlink($oldAvatarPath);
+                 }
+             }
+     
+             // Enregistrer le nouvel avatar
+             $avatarFileName = uniqid() . '_avatar.' . $avatar->guessExtension();
+     
+             try {
+                 $avatar->move($uploadDir, $avatarFileName);
+             } catch (\Exception $e) {
+                 return new JsonResponse(['code' => 'C-5002', 'message' => 'Failed to upload avatar: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+             }
+     
+             $user->setAvatar($avatarFileName);
+         }
+     
+         // Gestion de la bannière
+         if ($banner && $banner instanceof UploadedFile) {
+             // Supprimer l'ancienne bannière si elle existe
+             if ($user->getBanner()) {
+                 $oldBannerPath = $uploadDir . '/' . $user->getBanner();
+                 if (file_exists($oldBannerPath)) {
+                     unlink($oldBannerPath);
+                 }
+             }
+     
+             // Enregistrer la nouvelle bannière
+             $bannerFileName = uniqid() . '_banner.' . $banner->guessExtension();
+     
+             try {
+                 $banner->move($uploadDir, $bannerFileName);
+             } catch (\Exception $e) {
+                 return new JsonResponse(['code' => 'C-5003', 'message' => 'Failed to upload banner: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+             }
+     
+             $user->setBanner($bannerFileName);
+         }
+     
+         $entityManager->persist($user);
+         $entityManager->flush();
+     
+         return new JsonResponse(['code' => 'C-1611', 'message' => 'User updated successfully'], JsonResponse::HTTP_OK);
+     }
     
-        if (!$user) {
-            return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
-        }
-    
-        // Récupérer l'utilisateur connecté
-        $currentUser = $this->getUser();
-
-
-    
-        // Compter les abonnés
-        $followersCount = $userRepository->countFollowers($id);
-    
-        // Vérifier si l'utilisateur connecté suit cet utilisateur
-        $isFollowing = false;
-        if ($currentUser instanceof \App\Entity\User) {
-            $isFollowing = $userRepository->isFollowing($currentUser->getId(), $id);
-        }
-
-        // Récupérer le chemin public pour les fichiers
-        $baseUrl = $this->getParameter('base_url');
-        $uploadDir = $this->getParameter('upload_directory');
-
-
-        $avatarUrl = $user->getAvatar() ? $baseUrl  . $uploadDir . '/' . $user->getAvatar() : null;
-        $bannerUrl = $user->getBanner() ? $baseUrl . $uploadDir . '/' . $user->getBanner() : null;
-    
-    
-        $data = [
-            'id' => $user->getId(),
-            'email' => $user->getEmail(),
-            'pseudo' => $user->getPseudo(),
-            'bio' => $user->getBio(),
-            'avatar' => $avatarUrl,
-            'place' => $user->getPlace(),
-            'banner' => $bannerUrl,
-            'link' => $user->getLink(),
-            'followersCount' => $followersCount,
-            'isFollowing' => $isFollowing,
-        ];
-    
-        return new JsonResponse($data);
-    }
+     #[Route('/users/{id}', name: 'get_user', methods: ['GET'])]
+     #[IsGranted('ROLE_USER')]
+     public function fetchUser(
+         int $id,
+         Request $request,
+         UserRepository $userRepository,
+         UrlGeneratorInterface $urlGenerator
+     ): JsonResponse {
+         $user = $userRepository->find($id);
+     
+         if (!$user) {
+             return new JsonResponse(['code' => 'C-4121'], JsonResponse::HTTP_NOT_FOUND);
+         }
+     
+         // Récupérer l'utilisateur connecté
+         $currentUser = $this->getUser();
+     
+         // Compter les abonnés
+         $followersCount = $userRepository->countFollowers($id);
+     
+         // Vérifier si l'utilisateur connecté suit cet utilisateur
+         $isFollowing = false;
+         if ($currentUser instanceof \App\Entity\User) {
+             $isFollowing = $userRepository->isFollowing($currentUser->getId(), $id);
+         }
+     
+         // Construire les URLs des images
+         $baseUrl = $this->getParameter('base_url'); // Assurez-vous que ce paramètre est défini dans votre configuration
+         $avatarUrl = $user->getAvatar() ? $baseUrl . '/uploads/' . $user->getAvatar() : null;
+         $bannerUrl = $user->getBanner() ? $baseUrl . '/uploads/' . $user->getBanner() : null;
+     
+         $data = [
+             'id' => $user->getId(),
+             'email' => $user->getEmail(),
+             'pseudo' => $user->getPseudo(),
+             'bio' => $user->getBio(),
+             'avatar' => $avatarUrl,
+             'place' => $user->getPlace(),
+             'banner' => $bannerUrl,
+             'link' => $user->getLink(),
+             'followersCount' => $followersCount,
+             'isFollowing' => $isFollowing,
+         ];
+     
+         return new JsonResponse($data);
+     }
 
 
     #[Route('/verify-admin', name: 'verify_admin', methods: ['POST'])]

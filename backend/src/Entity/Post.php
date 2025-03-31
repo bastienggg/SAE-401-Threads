@@ -24,6 +24,12 @@ class Post
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $pictures = [];
+    
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $videos = [];
+
     public function getId(): ?int
     {
         return $this->id;
@@ -69,6 +75,33 @@ class Post
     {
         $this->user = $user;
 
+        return $this;
+    }
+
+
+    // Getter et setter pour pictures
+    public function getPictures(): ?array
+    {
+        return $this->pictures;
+    }
+    
+    public function setPictures(?array $pictures): static
+    {
+        $this->pictures = $pictures;
+    
+        return $this;
+    }
+    
+    // Getter et setter pour videos
+    public function getVideos(): ?array
+    {
+        return $this->videos;
+    }
+    
+    public function setVideos(?array $videos): static
+    {
+        $this->videos = $videos;
+    
         return $this;
     }
 }

@@ -2,7 +2,7 @@ import { deleteRequest, getRequest, postRequest } from "../lib/api-request";
 
 interface PostType {
     getPost: (token: string, page: number) => Promise<any>;
-    setPost: (post: { content: string, pseudo: string }, token: string) => Promise<any>;
+    setPost: (post: FormData, token: string) => Promise<any>;
     getUserPosts: (token: string, userId: string) => Promise<any> ;
     deletePost:(token:string, postID:string) => Promise<any>;
 
@@ -20,19 +20,14 @@ let Post: PostType = {
     }
   },
 
-  setPost: async function (post: { content: string, pseudo: string }, token: string) {
-    if (post.pseudo && post.content) {
-      try {
-        console.log('Sending post data:', post); // Log the data being sent
-        let data = await postRequest("posts", post, token);
-        console.log('Response data:', data); // Log the response data
-        return data;
-      } catch (error) {
-        console.error('Error posting:', error);
-        return null;
-      }
-    } else {
-      console.error('Pseudo or content is missing');
+  setPost: async function (post: FormData, token: string) {
+    try {
+      console.log("Sending post data as form-data:", post); // Log pour debug
+      let data = await postRequest("posts", post, token);
+      console.log("Response data:", data); // Log pour debug
+      return data;
+    } catch (error) {
+      console.error("Error posting:", error);
       return null;
     }
   },

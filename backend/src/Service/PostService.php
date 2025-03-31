@@ -18,21 +18,28 @@ class PostService
         $this->userRepository = $userRepository;
     }
 
+
+
     public function create(CreatePostPayload $payload): void
     {
-        // Récupérer l'utilisateur à partir de l'ID
         $user = $this->userRepository->find($payload->getUserId());
         if (!$user) {
             throw new \InvalidArgumentException('User not found');
         }
-
-        // Créer un nouveau post
+    
         $post = new Post();
         $post->setContent($payload->getContent());
         $post->setCreatedAt(new \DateTime());
-        $post->setUser($user); // Associer l'utilisateur au post
-
-        // Persister le post
+        $post->setUser($user);
+    
+        if ($payload->getPictures()) {
+            $post->setPictures($payload->getPictures());
+        }
+    
+        if ($payload->getVideos()) {
+            $post->setVideos($payload->getVideos());
+        }
+    
         $this->entityManager->persist($post);
         $this->entityManager->flush();
     }

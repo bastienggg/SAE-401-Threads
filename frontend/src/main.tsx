@@ -47,19 +47,35 @@ const router = createBrowserRouter([
       },
       {
         path: "profil",
-        element: <ProfilePage />,
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: "profile/:userId", // Nouvelle route dynamique pour les profils d'autres utilisateurs
-        element: <UserProfilePage />, // Composant pour afficher le profil d'un utilisateur
+        path: "profile/:userId", 
+        element : (
+          <ProtectedRoute>
+            <UserProfilePage />
+          </ProtectedRoute>
+        )
       },
       {
         path: "modify",
-        element: <ModifyProfile />,
+        element : (
+          <ProtectedRoute>
+            <ModifyProfile />
+          </ProtectedRoute>
+        )
       },
       {
         path: "settings",
-        element: <SettingPage />,
+        element: (
+          <ProtectedRoute>
+            <SettingPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: "backoffice",
