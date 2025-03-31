@@ -5,6 +5,9 @@ import { Button } from "../components/ui/button"
 
 
 export default function Root() {
+
+  sessionStorage.setItem('autoRefresh', 'true');
+
   
   return (
     <>

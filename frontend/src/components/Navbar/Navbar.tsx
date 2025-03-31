@@ -41,6 +41,7 @@ export default function Navbar({ onPostCreated }: NavbarProps) {
       <img src="/public/svg/explore.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/explore')} />
       <img src="/public/svg/write.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleIconClick} />
       <img src="/public/svg/Rectangle_3.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/profil')} />
+      <img src="/public/svg/setting.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={() => navigateTo('/settings')} />
       <img src="/public/svg/logout.svg" alt="" className="hover:cursor-pointer hover:scale-110 ease-in-out duration-200" onClick={handleLogoutClick} />
     </div>
     {isNewPostVisible && (

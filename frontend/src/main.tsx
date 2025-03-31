@@ -14,6 +14,7 @@ import ProtectedBackoffice from "./components/protetedBackoffice/protetedBackoff
 import ProfilePage from "./routes/Profil";
 import ModifyProfile from "./routes/ModifyProfil";
 import UserProfilePage from "./routes/UserProfilePage"; // Importez le composant de la page de profil utilisateur
+import SettingPage from "./routes/Setting";
 
 const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
       {
         path: "modify",
         element: <ModifyProfile />,
+      },
+      {
+        path: "settings",
+        element: <SettingPage />,
       },
       {
         path: "backoffice",

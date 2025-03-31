@@ -6,6 +6,8 @@ import NewPost from "../components/NewPost/NewPost";
 import RefreshButton from "../components/RefreshButton/RefreshButton";
 
 export default function Home() {
+  // Set auto-refresh to true in sessionStorage
+
   const [isNewPostVisible, setIsNewPostVisible] = useState(false);
   const token = sessionStorage.getItem('Token') as string;
   const allPostsRef = useRef<{ refreshPosts: () => Promise<void> }>(null);

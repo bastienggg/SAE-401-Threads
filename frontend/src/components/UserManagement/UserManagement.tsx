@@ -139,6 +139,7 @@ export default function UserManagement() {
                       <td className="p-2 align-middle whitespace-nowrap">{user.pseudo}</td>
                       <td className="p-2 align-middle whitespace-nowrap text-center">
                         <Switch
+                          variant="secondary"
                           checked={user.isBlocked || false}
                           onChange={() => handleToggleBlock(user)}
                         />

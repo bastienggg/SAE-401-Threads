@@ -79,6 +79,18 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
     }
   }, [hasMore]);
 
+  // Auto-refresh logic
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const autoRefresh = sessionStorage.getItem("autoRefresh");
+      if (autoRefresh === "true" && document.visibilityState === "visible") {
+      refreshPosts();
+      }
+    }, 300000); 
+
+    return () => clearInterval(intervalId); // Nettoyage de l'intervalle
+  }, []);
+
   return (
     <section
       ref={sectionRef}
