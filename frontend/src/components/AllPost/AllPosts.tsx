@@ -29,17 +29,27 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const observerTarget = useRef(null);
 
   const fetchPosts = async (page: number = 1) => {
-    if (page === 1) {
-      setLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
+    try {
+      if (page === 1) {
+        setLoading(true);
+        setError(null);
+      } else {
+        setIsLoadingMore(true);
+      }
 
-    const data = await PostData.getPost(token, page);
-    if (data) {
+      console.log(`Fetching posts for page ${page}`);
+      const data = await PostData.getPost(token, page);
+      
+      if (!data) {
+        console.error('No data received from getPost');
+        setError('Erreur lors du chargement des posts');
+        return;
+      }
+
       if (page === 1) {
         setPosts(data.posts);
       } else {
@@ -47,11 +57,13 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
       }
       setHasMore(data.next_page !== null);
       setCurrentPage(page);
-    } else {
-      console.error("Error fetching posts");
+    } catch (error) {
+      console.error('Error in fetchPosts:', error);
+      setError('Une erreur est survenue lors du chargement des posts');
+    } finally {
+      setLoading(false);
+      setIsLoadingMore(false);
     }
-    setLoading(false);
-    setIsLoadingMore(false);
   };
 
   const refreshPosts = async () => {
@@ -87,6 +99,11 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
 
   return (
     <section className="flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2 mb-14">
+      {error && (
+        <div className="w-full max-w-2xl p-4 mb-4 text-red-700 bg-red-100 rounded-lg">
+          {error}
+        </div>
+      )}
       {posts.map((post) => (
         <Post
           key={post.id}

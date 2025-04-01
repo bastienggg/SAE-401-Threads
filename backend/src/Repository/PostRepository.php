@@ -17,30 +17,43 @@ class PostRepository extends ServiceEntityRepository
         parent::__construct($registry, Post::class);
     }
 
-    
-    public function paginateAllOrderedByLatest(int $offset, int $count):       Paginator
+    public function paginateAllOrderedByLatest(int $offset, int $count): Paginator
     {
-        $query = $this->createQueryBuilder('p')
-            ->orderBy('p.created_at', 'DESC')
-            ->setFirstResult($offset)
-            ->setMaxResults($count)
-            ->getQuery()
-        ;
-    
-        return new Paginator($query);
+        try {
+            $query = $this->createQueryBuilder('p')
+                ->select('p', 'u')
+                ->innerJoin('p.user', 'u')
+                ->where('p.parent IS NULL')
+                ->orderBy('p.created_at', 'DESC')
+                ->setFirstResult($offset)
+                ->setMaxResults($count)
+                ->getQuery()
+            ;
+        
+            return new Paginator($query, false);
+        } catch (\Exception $e) {
+            throw new \Exception('Erreur lors de la pagination des posts: ' . $e->getMessage());
+        }
     }
 
     public function paginateByUserOrderedByLatest(int $userId, int $offset, int $limit): Paginator
     {
-        $query = $this->createQueryBuilder('p')
-            ->where('p.user = :userId')
-            ->setParameter('userId', $userId)
-            ->orderBy('p.created_at', 'DESC')
-            ->setFirstResult($offset)
-            ->setMaxResults($limit)
-            ->getQuery();
-    
-        return new Paginator($query);
+        try {
+            $query = $this->createQueryBuilder('p')
+                ->select('p', 'u')
+                ->innerJoin('p.user', 'u')
+                ->where('p.user = :userId')
+                ->andWhere('p.parent IS NULL')
+                ->setParameter('userId', $userId)
+                ->orderBy('p.created_at', 'DESC')
+                ->setFirstResult($offset)
+                ->setMaxResults($limit)
+                ->getQuery();
+        
+            return new Paginator($query, false);
+        } catch (\Exception $e) {
+            throw new \Exception('Erreur lors de la pagination des posts utilisateur: ' . $e->getMessage());
+        }
     }
     //    /**
     //     * @return Post[] Returns an array of Post objects

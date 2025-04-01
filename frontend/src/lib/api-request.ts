@@ -16,17 +16,24 @@ const getRequest = async function <T>(uri: string, token?: string): Promise<T | 
   };
 
   try {
-    const response = await fetch(API_URL + uri, options); 
+    console.log(`Making GET request to ${API_URL + uri} with headers:`, headers);
+    const response = await fetch(API_URL + uri, options);
+    console.log('Response status:', response.status);
+    
     if (!response.ok) {
+      const errorText = await response.text();
       console.error(
         `Erreur de requête : ${response.status} ${response.statusText}`,
-      ); 
-      return false; 
+        'Response body:', errorText
+      );
+      return false;
     }
+    
     const obj = await response.json();
-    return obj; 
+    console.log('Response data:', obj);
+    return obj;
   } catch (e) {
-    console.error("Echec de la requête : ", e); 
+    console.error("Echec de la requête : ", e);
     return false;
   }
 };

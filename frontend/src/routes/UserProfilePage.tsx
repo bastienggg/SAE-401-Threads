@@ -10,7 +10,6 @@ import Navbar from "../components/Navbar/Navbar";
 import ProfileSkeleton from "../components/profil-squeleton/ProfileSkeleton";
 import BlockedUsersList from "../components/BlockedUsersList/BlockedUsersList";
 import { Blocked } from "../data/blocked";
-
 import { User } from "../data/user";
 
 export default function UserProfilePage() {
@@ -38,7 +37,6 @@ export default function UserProfilePage() {
             let token = sessionStorage.getItem("Token") || "";
             
             // Vérifier d'abord si l'utilisateur nous a bloqué
-            let hasBlockedMe = false;
             try {
                 const isBlockedResponse = await fetch(`http://localhost:8080/api/is-blocked/${userId}`, {
                     headers: {
@@ -46,45 +44,42 @@ export default function UserProfilePage() {
                     }
                 });
                 const isBlockedData = await isBlockedResponse.json();
-                hasBlockedMe = isBlockedData.isBlocked;
-                console.log('API response for isBlocked:', isBlockedData);
-            } catch (error) {
-                console.error("Erreur lors de la vérification du blocage:", error);
-            }
+                
+                // Si l'utilisateur nous a bloqué, on ne charge pas les données
+                if (isBlockedData.isBlocked) {
+                    setUser(prev => ({
+                        ...prev,
+                        hasBlockedMe: true,
+                        email: "Utilisateur bloqué",
+                        pseudo: "Utilisateur bloqué",
+                        bio: "Vous ne pouvez pas voir le profil de cet utilisateur car il vous a bloqué",
+                        followersCount: 0,
+                        isFollowing: false,
+                    }));
+                    setLoading(false);
+                    return;
+                }
 
-            // Si l'utilisateur nous a bloqué, on ne charge pas les données
-            if (hasBlockedMe) {
-                setUser(prev => ({
-                    ...prev,
-                    hasBlockedMe: true,
-                    email: "Utilisateur bloqué",
-                    pseudo: "Utilisateur bloqué",
-                    bio: "Vous ne pouvez pas voir le profil de cet utilisateur car il vous a bloqué",
-                    followersCount: 0,
-                    isFollowing: false,
-                }));
+                // Sinon, on charge les données normalement
+                let data = await User.getUserInfos(token, userId || "");
+                setUser({
+                    email: data.email,
+                    pseudo: data.pseudo,
+                    bio: data.bio,
+                    avatar: data.avatar,
+                    place: data.place,
+                    banner: data.banner,
+                    link: data.link,
+                    followersCount: data.followersCount,
+                    isFollowing: data.isFollowing,
+                    isBlocked: data.isBlocked,
+                    hasBlockedMe: false,
+                });
                 setLoading(false);
-                console.log('User has blocked me, updating state:', { hasBlockedMe: true });
-                return;
+            } catch (error) {
+                console.error("Erreur lors du chargement des données:", error);
+                setLoading(false);
             }
-
-            // Sinon, on charge les données normalement
-            let data = await User.getUserInfos(token, userId || "");
-            setUser({
-                email: data.email,
-                pseudo: data.pseudo,
-                bio: data.bio,
-                avatar: data.avatar,
-                place: data.place,
-                banner: data.banner,
-                link: data.link,
-                followersCount: data.followersCount,
-                isFollowing: data.isFollowing,
-                isBlocked: data.isBlocked,
-                hasBlockedMe: false,
-            });
-            setLoading(false);
-            console.log('User data loaded, updating state:', { hasBlockedMe: false });
         };
 
         fetchData();

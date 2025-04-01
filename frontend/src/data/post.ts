@@ -8,12 +8,20 @@ interface PostType {
     updatePost: (token: string, postID: string, updatedData: FormData) => Promise<any>;
     censorPost: (token: string, postID: string) => Promise<any>;
     uncensorPost: (token: string, postID: string) => Promise<any>;
+    getReplies: (token: string, postId: string) => Promise<any>;
+    createReply: (token: string, postId: string, formData: FormData) => Promise<any>;
 }
 
 let Post: PostType = {
   getPost: async function (token: string, page: number = 1) {
     try {
+      console.log(`Fetching posts for page ${page} with token:`, token ? 'Token present' : 'No token');
       let data = await getRequest(`posts?page=${page}`, token);
+      if (!data) {
+        console.error('No data received from getRequest');
+        return null;
+      }
+      console.log('Received posts data:', data);
       return data;
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -52,6 +60,7 @@ let Post: PostType = {
       return null;
     }
   },
+
   updatePost: async function (token: string, postID: string, updatedData: FormData) {
     try {
       const data = await postRequest(`posts-update/${postID}`, updatedData, token)
@@ -61,6 +70,7 @@ let Post: PostType = {
       return null
     }
   },
+
   censorPost: async function (token: string, postID: string) {
     try {
       const data = await postRequest(`posts/${postID}/censor`, new FormData(), token)
@@ -70,6 +80,7 @@ let Post: PostType = {
       return null
     }
   },
+
   uncensorPost: async function (token: string, postID: string) {
     try {
       const data = await postRequest(`posts/${postID}/uncensor`, new FormData(), token)
@@ -77,6 +88,26 @@ let Post: PostType = {
     } catch (error) {
       console.error(`Error uncensoring post ${postID}:`, error)
       return null
+    }
+  },
+
+  getReplies: async function (token: string, postId: string) {
+    try {
+      const data = await getRequest(`posts/${postId}/replies`, token);
+      return data;
+    } catch (error) {
+      console.error(`Error fetching replies for post ${postId}:`, error);
+      return null;
+    }
+  },
+
+  createReply: async function (token: string, postId: string, formData: FormData) {
+    try {
+      const data = await postRequest(`posts/${postId}/reply`, formData, token);
+      return data;
+    } catch (error) {
+      console.error("Error creating reply:", error);
+      return null;
     }
   }
 };

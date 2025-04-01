@@ -1,5 +1,5 @@
 import Settings from "../components/setting/setting";
-import Navbar from "../components/Navbar/Navbar";
+import  Navbar  from "../components/Navbar/Navbar";
 
 export default function SettingPage() {
     return (

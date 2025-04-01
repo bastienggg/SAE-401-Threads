@@ -28,9 +28,9 @@ export default function ProfileHeader({
 }: ProfileHeaderProps) {
     const navigate = useNavigate();
     const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+    const [currentFollowersCount, setCurrentFollowersCount] = useState(followersCount);
     const [isBlocked, setIsBlocked] = useState(initialIsBlocked);
     const [hasBlockedMe, setHasBlockedMe] = useState(initialHasBlockedMe);
-    const [currentFollowersCount, setCurrentFollowersCount] = useState<number>(followersCount);
 
     console.log('ProfileHeader received hasBlockedMe:', initialHasBlockedMe);
 
@@ -77,22 +77,13 @@ export default function ProfileHeader({
                     console.log('Unblocked successfully');
                 }
             } else {
-                try {
-                    const response = await Blocked.BlockUser(token, userId);
-                    if (response) {
-                        setIsBlocked(true);
-                        console.log('Blocked successfully');
-                    }
-                } catch (error: any) {
-                    if (error.message?.includes('409')) {
-                        setIsBlocked(true);
-                        console.log('Already blocked');
-                    } else {
-                        console.error("Erreur lors du blocage/déblocage :", error);
-                    }
+                const response = await Blocked.BlockUser(token, userId);
+                if (response) {
+                    setIsBlocked(true);
+                    console.log('Blocked successfully');
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erreur lors du blocage/déblocage :", error);
         }
     };

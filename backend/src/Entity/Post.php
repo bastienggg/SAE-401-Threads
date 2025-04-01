@@ -5,6 +5,8 @@ namespace App\Entity;
 use App\Repository\PostRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
 class Post
@@ -29,6 +31,18 @@ class Post
 
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $is_censored = false;
+
+    #[ORM\ManyToOne(targetEntity: Post::class, inversedBy: 'replies')]
+    #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', nullable: true)]
+    private ?Post $parent = null;
+
+    #[ORM\OneToMany(mappedBy: 'parent', targetEntity: Post::class)]
+    private Collection $replies;
+
+    public function __construct()
+    {
+        $this->replies = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -78,7 +92,6 @@ class Post
         return $this;
     }
 
-
     public function getMedia(): ?array
     {
         return $this->media ?? [];
@@ -99,6 +112,41 @@ class Post
     public function setIsCensored(bool $is_censored): static
     {
         $this->is_censored = $is_censored;
+        return $this;
+    }
+
+    public function getParent(): ?self
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?self $parent): static
+    {
+        $this->parent = $parent;
+        return $this;
+    }
+
+    public function getReplies(): Collection
+    {
+        return $this->replies;
+    }
+
+    public function addReply(self $reply): static
+    {
+        if (!$this->replies->contains($reply)) {
+            $this->replies->add($reply);
+            $reply->setParent($this);
+        }
+        return $this;
+    }
+
+    public function removeReply(self $reply): static
+    {
+        if ($this->replies->removeElement($reply)) {
+            if ($reply->getParent() === $this) {
+                $reply->setParent(null);
+            }
+        }
         return $this;
     }
 }

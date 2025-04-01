@@ -13,9 +13,18 @@ interface EditPostModalProps {
   onClose: () => void
   onUpdate: () => void
   onPostUpdated?: () => void
+  isReply?: boolean
 }
 
-export function EditPostModal({ postId, initialContent, initialMedia = [], onClose, onUpdate, onPostUpdated }: EditPostModalProps) {
+export function EditPostModal({ 
+  postId, 
+  initialContent, 
+  initialMedia = [], 
+  onClose, 
+  onUpdate, 
+  onPostUpdated,
+  isReply = false 
+}: EditPostModalProps) {
   const [content, setContent] = useState(initialContent)
   const [media, setMedia] = useState<(string | File)[]>(initialMedia)
   const [removedMedia, setRemovedMedia] = useState<string[]>([])
@@ -52,7 +61,9 @@ export function EditPostModal({ postId, initialContent, initialMedia = [], onClo
       formData.append("content", content)
 
       media.forEach((item) => {
-        if (typeof item !== "string") {
+        if (typeof item === "string") {
+          formData.append("existingMedia[]", item)
+        } else {
           formData.append("media[]", item)
         }
       })
@@ -69,22 +80,22 @@ export function EditPostModal({ postId, initialContent, initialMedia = [], onClo
       onUpdate()
       onPostUpdated?.()
       onClose()
+      window.location.reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred")
     } finally {
       setIsLoading(false)
-    window.location.reload()
     }
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/50">
-      <div className="bg-white p-5 rounded-lg shadow-lg w-full max-w-md">
+    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Edit Post</h2>
-          <Button variant="ghost" onClick={onClose} className="w-8 h-8 rounded-full">
-            <X className="w-4 h-4" />
-          </Button>
+          <h2 className="text-xl font-semibold">{isReply ? "Modifier la réponse" : "Modifier le post"}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
         <div className="space-y-4">

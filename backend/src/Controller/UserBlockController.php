@@ -41,32 +41,36 @@ class UserBlockController extends AbstractController
             return new JsonResponse(['error' => 'User is already blocked'], JsonResponse::HTTP_CONFLICT);
         }
 
-        // Créer le blocage
-        $userBlock = new UserBlock();
-        $userBlock->setBlocker($blocker);
-        $userBlock->setBlocked($blocked);
+        try {
+            // Créer le blocage
+            $userBlock = new UserBlock();
+            $userBlock->setBlocker($blocker);
+            $userBlock->setBlocked($blocked);
 
-        // Supprimer les abonnements existants dans les deux sens
-        $follows = $followRepository->findBy([
-            'follower' => $blocker,
-            'profile' => $blocked
-        ]);
-        foreach ($follows as $follow) {
-            $entityManager->remove($follow);
+            // Supprimer les abonnements existants dans les deux sens
+            $follows = $followRepository->findBy([
+                'follower' => $blocker,
+                'profile' => $blocked
+            ]);
+            foreach ($follows as $follow) {
+                $entityManager->remove($follow);
+            }
+
+            $follows = $followRepository->findBy([
+                'follower' => $blocked,
+                'profile' => $blocker
+            ]);
+            foreach ($follows as $follow) {
+                $entityManager->remove($follow);
+            }
+
+            $entityManager->persist($userBlock);
+            $entityManager->flush();
+
+            return new JsonResponse(['message' => 'User blocked successfully']);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => 'Failed to block user: ' . $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $follows = $followRepository->findBy([
-            'follower' => $blocked,
-            'profile' => $blocker
-        ]);
-        foreach ($follows as $follow) {
-            $entityManager->remove($follow);
-        }
-
-        $entityManager->persist($userBlock);
-        $entityManager->flush();
-
-        return new JsonResponse(['message' => 'User blocked successfully']);
     }
 
     #[Route('/unblock/{id}', name: 'unblock_user', methods: ['DELETE'])]

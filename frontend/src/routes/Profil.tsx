@@ -3,7 +3,7 @@ import ProfileBanner from "../components/profile-banner/profile-banner";
 import ProfileAvatar from "../components/profile-avatar/profile-avatar";
 import ProfileHeader from "../components/profile-header/profile-header";
 import ProfileInfo from "../components/profile-info/profile-info";
-import Navbar from "../components/Navbar/Navbar";
+import  Navbar  from "../components/Navbar/Navbar";
 import ProfileSkeleton from "../components/profil-squeleton/ProfileSkeleton";
 import Header from '../components/ui/header';
 

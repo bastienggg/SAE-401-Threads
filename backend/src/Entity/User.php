@@ -6,6 +6,8 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
@@ -61,6 +63,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?bool $blocked = null;
 
+    #[ORM\OneToMany(mappedBy: 'profile', targetEntity: Follow::class)]
+    private Collection $followers;
+
+    #[ORM\OneToMany(mappedBy: 'follower', targetEntity: Follow::class)]
+    private Collection $following;
+
+    public function __construct()
+    {
+        $this->followers = new ArrayCollection();
+        $this->following = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -261,4 +274,61 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, Follow>
+     */
+    public function getFollowers(): Collection
+    {
+        return $this->followers;
+    }
+
+    public function addFollower(Follow $follower): static
+    {
+        if (!$this->followers->contains($follower)) {
+            $this->followers->add($follower);
+            $follower->setProfile($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFollower(Follow $follower): static
+    {
+        if ($this->followers->removeElement($follower)) {
+            if ($follower->getProfile() === $this) {
+                $follower->setProfile(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Follow>
+     */
+    public function getFollowing(): Collection
+    {
+        return $this->following;
+    }
+
+    public function addFollowing(Follow $following): static
+    {
+        if (!$this->following->contains($following)) {
+            $this->following->add($following);
+            $following->setFollower($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFollowing(Follow $following): static
+    {
+        if ($this->following->removeElement($following)) {
+            if ($following->getFollower() === $this) {
+                $following->setFollower(null);
+            }
+        }
+
+        return $this;
+    }
 }

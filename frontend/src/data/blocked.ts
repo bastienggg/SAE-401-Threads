@@ -14,8 +14,7 @@ let Blocked: BlockedType = {
             console.error('Error blocking user:', error);
             return null;
         }
-    }
-    ,
+    },
     UnblockUser: async function (token: string, userId: string) {
         try {
             let data = await deleteRequest(`api/unblock/${userId}`, token);

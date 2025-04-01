@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import Navbar from "../components/Navbar/Navbar";
+import  Navbar  from "../components/Navbar/Navbar";
 import Header from '../components/ui/header';
 import AllPosts from "../components/AllPost/AllPosts";
 import NewPost from "../components/NewPost/NewPost";
@@ -24,7 +24,7 @@ export default function Home() {
       <div className="w-full bg-white z-10">
         <Navbar onPostCreated={handleRefreshPosts} />
       </div>
-      {isNewPostVisible && <NewPost onClose={() => setIsNewPostVisible(false)} onPostCreated={handleRefreshPosts} />}
+      {isNewPostVisible && <NewPost onPostCreated={handleRefreshPosts} onClose={() => setIsNewPostVisible(false)} />}
     </main>
   );
 }
