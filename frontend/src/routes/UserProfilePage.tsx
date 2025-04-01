@@ -23,6 +23,7 @@ export default function UserProfilePage() {
         link: "",
         followersCount: 0, // Ajout du compteur d'abonnés
         isFollowing: false, // Ajout de la propriété isFollowing
+        isBlocked: false,
     });
     const [loading, setLoading] = useState(true);
 
@@ -44,6 +45,7 @@ export default function UserProfilePage() {
                 link: data.link,
                 followersCount: data.followersCount, // Récupération du compteur
                 isFollowing: data.isFollowing, // Récupération de l'état d'abonnement
+                isBlocked: data.isBlocked || false,
             });
             setLoading(false);
         };
@@ -72,6 +74,7 @@ export default function UserProfilePage() {
                         followersCount={user.followersCount} // Passage du compteur
                         isFollowing={user.isFollowing} // Passage de l'état d'abonnement
                         userId={userId || ""} // Ajout de l'ID utilisateur
+                        isBlocked={user.isBlocked}
                     />
                     <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
                 </div>

@@ -40,24 +40,17 @@ final class PostController extends AbstractController
         $nextPage = ($offset + $count) < $totalPostsCount ? $page + 1 : null;
     
         $baseUrl = $this->getParameter('base_url');
-        $uploadDir = $this->getParameter('upload_directory');
         $user = $this->getUser();
     
         $posts = array_map(function ($post) use ($baseUrl, $likeRepository, $user) {
             $userEntity = $post->getUser();
             $avatarUrl = $userEntity->getAvatar() ? $baseUrl . '/uploads/' . $userEntity->getAvatar() : null;
-            $bannerUrl = $userEntity->getBanner() ? $baseUrl . '/uploads/' . $userEntity->getBanner() : null;
-        
-            // Récupérer le nombre de likes et vérifier si l'utilisateur a liké
+    
             $likeCount = $likeRepository->count(['post' => $post]);
             $userLiked = $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null;
-        
-            // Générer les URLs pour les pictures
-            $pictures = array_map(fn($picture) => $baseUrl . '/uploads/' . $picture, $post->getPictures() ?? []);
-        
-            // Générer les URLs pour les videos
-            $videos = array_map(fn($video) => $baseUrl . '/uploads/' . $video, $post->getVideos() ?? []);
-        
+    
+            $media = array_map(fn($file) => $baseUrl . '/uploads/' . $file, $post->getMedia() ?? []);
+    
             return [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
@@ -65,14 +58,12 @@ final class PostController extends AbstractController
                 'user' => [
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
-                    'banner' => $bannerUrl,
                     'pseudo' => $userEntity->getPseudo(),
                     'is_blocked' => $userEntity->isBlocked(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
-                'pictures' => $pictures,
-                'videos' => $videos,
+                'media' => $media,
             ];
         }, iterator_to_array($paginator));
     
@@ -102,24 +93,17 @@ final class PostController extends AbstractController
         $nextPage = ($offset + $count) < $totalPostsCount ? $page + 1 : null;
     
         $baseUrl = $this->getParameter('base_url');
-        $uploadDir = $this->getParameter('upload_directory');
         $user = $this->getUser();
     
         $posts = array_map(function ($post) use ($baseUrl, $likeRepository, $user) {
             $userEntity = $post->getUser();
             $avatarUrl = $userEntity->getAvatar() ? $baseUrl . '/uploads/' . $userEntity->getAvatar() : null;
-            $bannerUrl = $userEntity->getBanner() ? $baseUrl . '/uploads/' . $userEntity->getBanner() : null;
-        
-            // Récupérer le nombre de likes et vérifier si l'utilisateur a liké
+    
             $likeCount = $likeRepository->count(['post' => $post]);
             $userLiked = $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null;
-        
-            // Générer les URLs pour les pictures
-            $pictures = array_map(fn($picture) => $baseUrl . '/uploads/' . $picture, $post->getPictures() ?? []);
-        
-            // Générer les URLs pour les videos
-            $videos = array_map(fn($video) => $baseUrl . '/uploads/' . $video, $post->getVideos() ?? []);
-        
+    
+            $media = array_map(fn($file) => $baseUrl . '/uploads/' . $file, $post->getMedia() ?? []);
+    
             return [
                 'id' => $post->getId(),
                 'content' => $post->getContent(),
@@ -127,14 +111,12 @@ final class PostController extends AbstractController
                 'user' => [
                     'id' => $userEntity->getId(),
                     'avatar' => $avatarUrl,
-                    'banner' => $bannerUrl,
                     'pseudo' => $userEntity->getPseudo(),
                     'is_blocked' => $userEntity->isBlocked(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
-                'pictures' => $pictures,
-                'videos' => $videos,
+                'media' => $media,
             ];
         }, iterator_to_array($paginator));
     
@@ -145,6 +127,90 @@ final class PostController extends AbstractController
         ]);
     }
 
+    #[Route('/posts-update/{id}', name: 'posts.update', methods: ['POST'], format: 'json')]
+    #[IsGranted('ROLE_USER')]
+    public function updatePost(
+        int $id,
+        Request $request,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+    
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+    
+        $user = $this->getUser();
+        if ($post->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'You are not authorized to update this post'], Response::HTTP_FORBIDDEN);
+        }
+    
+        $content = $request->request->get('content');
+        $mediaFiles = $request->files->get('media', []);
+        if (!is_array($mediaFiles)) {
+            $mediaFiles = [$mediaFiles];
+        }
+    
+        // Récupérer les médias à supprimer
+        $removedMediaUrls = $request->request->all('removedMedia');
+        if (!is_array($removedMediaUrls)) {
+            $removedMediaUrls = [$removedMediaUrls];
+        }
+    
+        // Supprimer les fichiers des médias supprimés
+        $uploadDir = $this->getParameter('upload_directory');
+        
+        $currentMedia = $post->getMedia() ?? []; // Assurez-vous que $currentMedia est un tableau
+        $updatedMedia = $currentMedia;
+    
+        foreach ($removedMediaUrls as $mediaUrl) {
+            $media = basename($mediaUrl);
+            $filePath = $uploadDir . '/' . $media;
+    
+            if (file_exists($filePath)) {
+                unlink($filePath); // Supprime physiquement le fichier
+            }
+    
+            $updatedMedia = array_filter($updatedMedia, fn($item) => $item !== $media);
+        }
+    
+        $post->setMedia($updatedMedia);
+    
+        // Gérer les nouveaux fichiers médias
+        $errors = [];
+        $mediaPaths = [];
+        foreach ($mediaFiles as $media) {
+            if ($media && $media->isValid()) {
+                $mediaName = uniqid() . '.' . $media->guessExtension();
+                $media->move($uploadDir, $mediaName);
+                $mediaPaths[] = $mediaName;
+            } else {
+                $errors[] = 'Invalid media upload.';
+            }
+        }
+    
+        if (!empty($errors)) {
+            return $this->json(['errors' => $errors], Response::HTTP_BAD_REQUEST);
+        }
+    
+        if ($content) {
+            $post->setContent($content);
+        }
+    
+        if (!empty($mediaPaths)) {
+            $post->setMedia(array_merge($currentMedia, $mediaPaths)); // Utilisez $currentMedia ici
+        }
+    
+        try {
+            $entityManager->flush();
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to update post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    
+        return $this->json(['message' => 'Post updated successfully'], Response::HTTP_OK);
+    }
+
 
     #[Route('/posts', name: 'posts.create', methods: ['POST'], format: 'json')]
     #[IsGranted('ROLE_USER')]
@@ -153,9 +219,6 @@ final class PostController extends AbstractController
         ValidatorInterface $validator,
         PostService $postService
     ): JsonResponse {
-
-        header('Access-Control-Allow-Origin: http://localhost:8090');
-
         $user = $this->getUser();
         if (!$user || !method_exists($user, 'getId')) {
             return $this->json(['error' => 'User not authenticated or invalid user object'], Response::HTTP_UNAUTHORIZED);
@@ -166,44 +229,21 @@ final class PostController extends AbstractController
         }
     
         $content = $request->request->get('content');
-        $pictures = $request->files->get('pictures', []); // Récupérer les fichiers
-    
-        dump($pictures);
-        // Assurez-vous que $pictures est toujours un tableau
-        if (!is_array($pictures)) {
-            $pictures = [$pictures];
+        $mediaFiles = $request->files->get('media', []);
+        if (!is_array($mediaFiles)) {
+            $mediaFiles = [$mediaFiles];
         }
     
         $errors = [];
-        $picturePaths = [];
-        foreach ($pictures as $picture) {
-            if ($picture && $picture->isValid()) {
+        $mediaPaths = [];
+        foreach ($mediaFiles as $media) {
+            if ($media && $media->isValid()) {
                 $uploadDir = $this->getParameter('upload_directory');
-                $pictureName = uniqid() . '.' . $picture->guessExtension();
-                $picture->move($uploadDir, $pictureName);
-                $picturePaths[] = $pictureName;
+                $mediaName = uniqid() . '.' . $media->guessExtension();
+                $media->move($uploadDir, $mediaName);
+                $mediaPaths[] = $mediaName;
             } else {
-                $errors[] = 'Invalid picture upload.';
-            }
-        }
-
-        
-    
-        // Gestion des vidéos (similaire aux images)
-        $videos = $request->files->get('videos', []);
-        if (!is_array($videos)) {
-            $videos = [$videos];
-        }
-    
-        $videoPaths = [];
-        foreach ($videos as $video) {
-            if ($video && $video->isValid()) {
-                $uploadDir = $this->getParameter('upload_directory');
-                $videoName = uniqid() . '.' . $video->guessExtension();
-                $video->move($uploadDir, $videoName);
-                $videoPaths[] = $videoName;
-            } else {
-                $errors[] = 'Invalid video upload.';
+                $errors[] = 'Invalid media upload.';
             }
         }
     
@@ -214,8 +254,7 @@ final class PostController extends AbstractController
         $payload = new CreatePostPayload();
         $payload->setUserId($user->getId());
         $payload->setContent($content);
-        $payload->setPictures($picturePaths);
-        $payload->setVideos($videoPaths);
+        $payload->setMedia($mediaPaths);
     
         try {
             $postService->create($payload);
@@ -234,27 +273,23 @@ final class PostController extends AbstractController
         LikeRepository $likeRepository,
         EntityManagerInterface $entityManager
     ): JsonResponse {
-        // Récupérer le post à supprimer
         $post = $postRepository->find($id);
     
         if (!$post) {
             return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
         }
     
-        // Vérifier si l'utilisateur connecté est le propriétaire du post
         $user = $this->getUser();
         if ($post->getUser()->getId() !== $user->getId()) {
             return $this->json(['error' => 'You are not authorized to delete this post'], Response::HTTP_FORBIDDEN);
         }
     
-        // Supprimer les likes associés au post
         try {
             $likes = $likeRepository->findBy(['post' => $post]);
             foreach ($likes as $like) {
                 $entityManager->remove($like);
             }
     
-            // Supprimer le post
             $entityManager->remove($post);
             $entityManager->flush();
         } catch (\Exception $e) {

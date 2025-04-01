@@ -19,5 +19,10 @@ RUN docker-php-ext-install pdo_mysql
 # Install Composer globally
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
+RUN echo "post_max_size = 512M" >> /usr/local/etc/php/php.ini
+RUN echo "upload_max_filesize = 512M" >> /usr/local/etc/php/php.ini
+
+
+
 # Expose port 9000 for PHP-FPM
 EXPOSE 9000

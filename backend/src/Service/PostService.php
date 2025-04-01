@@ -32,12 +32,8 @@ class PostService
         $post->setCreatedAt(new \DateTime());
         $post->setUser($user);
     
-        if ($payload->getPictures()) {
-            $post->setPictures($payload->getPictures());
-        }
-    
-        if ($payload->getVideos()) {
-            $post->setVideos($payload->getVideos());
+        if ($payload->getMedia()) {
+            $post->setMedia($payload->getMedia());
         }
     
         $this->entityManager->persist($post);

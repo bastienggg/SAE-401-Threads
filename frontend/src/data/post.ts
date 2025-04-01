@@ -5,8 +5,7 @@ interface PostType {
     setPost: (post: FormData, token: string) => Promise<any>;
     getUserPosts: (token: string, userId: string) => Promise<any> ;
     deletePost:(token:string, postID:string) => Promise<any>;
-
-    
+    updatePost: (token: string, postID: string, updatedData: FormData) => Promise<any>;
 }
 
 let Post: PostType = {
@@ -49,6 +48,15 @@ let Post: PostType = {
     } catch (error) {
       console.error(`Error fetching posts for user ${postID}:`, error);
       return null;
+    }
+  },
+  updatePost: async function (token: string, postID: string, updatedData: FormData) {
+    try {
+      const data = await postRequest(`posts-update/${postID}`, updatedData, token)
+      return data
+    } catch (error) {
+      console.error(`Error updating post ${postID}:`, error)
+      return null
     }
   }
 };

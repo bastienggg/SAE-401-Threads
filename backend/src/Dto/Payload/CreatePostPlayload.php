@@ -6,8 +6,7 @@ class CreatePostPayload
 {
     private ?int $userId = null;
     private ?string $content = null;
-    private ?array $pictures = [];
-    private ?array $videos = [];
+    private ?array $media = [];
 
     public function getUserId(): ?int
     {
@@ -30,26 +29,15 @@ class CreatePostPayload
     }
 
 
-    public function getPictures(): ?array
+
+    public function getMedia(): ?array
     {
-        return $this->pictures;
+        return $this->media;
     }
     
-    public function setPictures(?array $pictures): static
+    public function setMedia(?array $media): static
     {
-        $this->pictures = $pictures;
-    
-        return $this;
-    }
-    
-    public function getVideos(): ?array
-    {
-        return $this->videos;
-    }
-    
-    public function setVideos(?array $videos): static
-    {
-        $this->videos = $videos;
+        $this->media = $media;
     
         return $this;
     }

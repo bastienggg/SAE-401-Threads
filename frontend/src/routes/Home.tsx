@@ -6,8 +6,6 @@ import NewPost from "../components/NewPost/NewPost";
 import RefreshButton from "../components/RefreshButton/RefreshButton";
 
 export default function Home() {
-  // Set auto-refresh to true in sessionStorage
-
   const [isNewPostVisible, setIsNewPostVisible] = useState(false);
   const token = sessionStorage.getItem('Token') as string;
   const allPostsRef = useRef<{ refreshPosts: () => Promise<void> }>(null);
@@ -24,9 +22,9 @@ export default function Home() {
       <RefreshButton onClick={handleRefreshPosts} />
       <AllPosts ref={allPostsRef} token={token} />
       <div className="w-full bg-white z-10">
-        <Navbar onPostCreated={() => window.location.reload()} />
+        <Navbar onPostCreated={handleRefreshPosts} />
       </div>
-      {isNewPostVisible && <NewPost onClose={() => setIsNewPostVisible(false)} onPostCreated={() => window.location.reload()} />}
+      {isNewPostVisible && <NewPost onClose={() => setIsNewPostVisible(false)} onPostCreated={handleRefreshPosts} />}
     </main>
   );
 }

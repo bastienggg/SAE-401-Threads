@@ -25,10 +25,7 @@ class Post
     private ?User $user = null;
 
     #[ORM\Column(type: Types::JSON, nullable: true)]
-    private ?array $pictures = [];
-    
-    #[ORM\Column(type: Types::JSON, nullable: true)]
-    private ?array $videos = [];
+    private ?array $media = [];
 
     public function getId(): ?int
     {
@@ -79,28 +76,14 @@ class Post
     }
 
 
-    // Getter et setter pour pictures
-    public function getPictures(): ?array
+    public function getMedia(): ?array
     {
-        return $this->pictures;
+        return $this->media ?? [];
     }
     
-    public function setPictures(?array $pictures): static
+    public function setMedia(?array $media): static
     {
-        $this->pictures = $pictures;
-    
-        return $this;
-    }
-    
-    // Getter et setter pour videos
-    public function getVideos(): ?array
-    {
-        return $this->videos;
-    }
-    
-    public function setVideos(?array $videos): static
-    {
-        $this->videos = $videos;
+        $this->media = $media;
     
         return $this;
     }

@@ -6,6 +6,8 @@ import ConfirmDelete from "../confirmDelete/confirmDelete"
 import { useNavigate } from "react-router-dom"
 import { Like } from "../../data/like"
 import { ImageCarousel } from "../image-carousel/image-carousel"
+import { EditPostModal } from "../edit-post-modal/edit-post-modal"
+import { Pencil } from "lucide-react"
 
 interface PostProps {
   content: string
@@ -17,33 +19,8 @@ interface PostProps {
   likeCount: number
   userLiked: boolean
   isBlocked: boolean
-  pictures?: string[] // Mise à jour pour accepter un tableau d'images
-}
-
-function timeSince(date: Date) {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
-  let interval = seconds / 31536000
-
-  if (interval > 1) {
-    return Math.floor(interval) + " years"
-  }
-  interval = seconds / 2592000
-  if (interval > 1) {
-    return Math.floor(interval) + " months"
-  }
-  interval = seconds / 86400
-  if (interval > 1) {
-    return Math.floor(interval) + " days"
-  }
-  interval = seconds / 3600
-  if (interval > 1) {
-    return Math.floor(interval) + " hours"
-  }
-  interval = seconds / 60
-  if (interval > 1) {
-    return Math.floor(interval) + " minutes"
-  }
-  return Math.floor(seconds) + " seconds"
+  media?: string[]
+  refreshPosts?: () => void
 }
 
 export default function Post({
@@ -56,12 +33,16 @@ export default function Post({
   likeCount,
   userLiked,
   isBlocked,
-  pictures,
+  media,
+  refreshPosts,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [isLiked, setIsLiked] = useState(userLiked)
   const [likes, setLikes] = useState(likeCount)
+  const [postContent, setPostContent] = useState(content)
+  const [postMedia, setPostMedia] = useState(media || [])
   const navigate = useNavigate()
 
   const currentUserId = Number(sessionStorage.getItem("id"))
@@ -77,11 +58,8 @@ export default function Post({
     try {
       const response = await Like.AddLike(token, postId)
       if (response) {
-        console.log("Post liké avec succès")
         setIsLiked(true)
         setLikes(likes + 1)
-      } else {
-        console.error("Erreur lors du like du post")
       }
     } catch (error) {
       console.error("Erreur lors de l'appel à AddLike :", error)
@@ -97,11 +75,8 @@ export default function Post({
     try {
       const response = await Like.Deletelike(token, postId)
       if (response) {
-        console.log("Like supprimé avec succès")
         setIsLiked(false)
         setLikes(likes - 1)
-      } else {
-        console.error("Erreur lors de la suppression du like")
       }
     } catch (error) {
       console.error("Erreur lors de l'appel à Deletelike :", error)
@@ -117,14 +92,16 @@ export default function Post({
     try {
       const response = await PostAPI.deletePost(token, postId)
       if (response) {
-        console.log("Post supprimé avec succès")
         setIsVisible(false)
-      } else {
-        console.error("Erreur lors de la suppression du post")
+        refreshPosts?.()
       }
     } catch (error) {
       console.error("Erreur lors de l'appel à deletePost :", error)
     }
+  }
+
+  const handlePostUpdate = () => {
+    refreshPosts?.()
   }
 
   if (!isVisible) {
@@ -132,10 +109,7 @@ export default function Post({
   }
 
   return (
-    <div
-      className="flex flex-col gap-4 p-4 w-full bg-white rounded-md shadow-md my-2"
-      onDoubleClick={isLiked ? handleUnlike : handleLike}
-    >
+    <div className="flex flex-col gap-4 p-4 w-full bg-white rounded-md shadow-md my-2">
       <div className="flex flex-row gap-4 items-start">
         <img src={avatar || "/public/profil/default.jpg"} alt="profil" className="w-9 aspect-square rounded-full" />
         <div className="w-full flex flex-col gap-2">
@@ -146,18 +120,17 @@ export default function Post({
             >
               @{pseudo}
             </p>
-            <p className="text-xs text-neutral-700">{timeSince(new Date(createdAt))} ago</p>
+            <p className="text-xs text-neutral-700">{new Date(createdAt).toLocaleString()}</p>
           </div>
           {isBlocked ? (
             <p className="text-red-500 font-bold">Cet utilisateur a été temporairement bloqué.</p>
           ) : (
-            <p>{content}</p>
+            <p>{postContent}</p>
           )}
 
-          {/* Carousel d'images remplaçant l'affichage simple */}
-          {pictures && pictures.length > 0 && (
+          {postMedia && postMedia.length > 0 && (
             <div className="mt-2">
-              <ImageCarousel images={pictures} />
+              <ImageCarousel images={postMedia} className="w-full" />
             </div>
           )}
         </div>
@@ -173,16 +146,24 @@ export default function Post({
             />
             <span className="text-sm text-neutral-700">{likes}</span>
           </div>
+
           {isCurrentUser && (
-            <img
-              src="/public/svg/trash.svg"
-              className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
-              alt="Supprimer"
-              onClick={() => setShowConfirm(true)}
-            />
+            <div className="flex items-center gap-2">
+              <Pencil
+                className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out text-neutral-600"
+                onClick={() => setShowEditModal(true)}
+              />
+              <img
+                src="/public/svg/trash.svg"
+                className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
+                alt="Supprimer"
+                onClick={() => setShowConfirm(true)}
+              />
+            </div>
           )}
         </div>
       )}
+
       {showConfirm && (
         <ConfirmDelete
           onConfirm={() => {
@@ -192,7 +173,17 @@ export default function Post({
           onCancel={() => setShowConfirm(false)}
         />
       )}
+
+      {showEditModal && (
+        <EditPostModal
+          postId={postId}
+          initialContent={postContent}
+          initialMedia={postMedia}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={handlePostUpdate}
+          onPostUpdated={refreshPosts}
+        />
+      )}
     </div>
   )
 }
-

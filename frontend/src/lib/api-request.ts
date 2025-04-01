@@ -30,7 +30,8 @@ const getRequest = async function <T>(uri: string, token?: string): Promise<T | 
     return false;
   }
 };
-const postRequest = async function <T>(uri: string, data: any, token?: string): Promise<T | null> {
+
+const postRequest = async function <T>(uri: string, data: any, token?: string): Promise<T> {
   const headers: HeadersInit = {};
 
   if (token) {
@@ -49,15 +50,11 @@ const postRequest = async function <T>(uri: string, data: any, token?: string): 
 
   try {
     const response = await fetch(API_URL + uri, options);
-    if (!response.ok) {
-      console.error(`Request failed: ${response.status} ${response.statusText}`);
-      return null; // Return null on failure
-    }
     const obj = await response.json();
-    return obj;
+    return obj; // Return the response object even in case of an error
   } catch (e) {
     console.error("Echec de la requête : ", e);
-    return null; // Return null on exception
+    throw e; // Throw the error to handle it outside if needed
   }
 };
 

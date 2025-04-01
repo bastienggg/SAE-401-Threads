@@ -13,35 +13,40 @@ interface ImageUploadPopupProps {
 }
 
 export default function ImageUploadPopup({ isOpen, onClose, onImagesSelected }: ImageUploadPopupProps) {
-  const [selectedImages, setSelectedImages] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<{ type: "image" | "video"; url: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
-      setSelectedImages((prev) => [...prev, ...newFiles])
+
+      // Vérifiez si le total des fichiers dépasse 4
+      if (selectedFiles.length + newFiles.length > 4) {
+        alert("You can only upload up to 4 media files.")
+        return
+      }
+
+      setSelectedFiles((prev) => [...prev, ...newFiles])
 
       // Generate previews for the new files
       newFiles.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            setPreviews((prev) => [...prev, e.target!.result as string])
-          }
+        const fileType = file.type.startsWith("image") ? "image" : file.type.startsWith("video") ? "video" : null
+        if (fileType) {
+          const url = URL.createObjectURL(file)
+          setPreviews((prev) => [...prev, { type: fileType, url }])
         }
-        reader.readAsDataURL(file)
       })
     }
   }
 
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index))
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
     setPreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleConfirm = () => {
-    onImagesSelected(selectedImages)
+    onImagesSelected(selectedFiles)
     onClose()
   }
 
@@ -55,7 +60,7 @@ export default function ImageUploadPopup({ isOpen, onClose, onImagesSelected }: 
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
         <div className="flex justify-between items-center border-b pb-2">
-          <h2 className="text-lg font-semibold">Upload Images</h2>
+          <h2 className="text-lg font-semibold">Upload Media</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="h-5 w-5" />
           </button>
@@ -65,13 +70,21 @@ export default function ImageUploadPopup({ isOpen, onClose, onImagesSelected }: 
           <div className="grid grid-cols-3 gap-2">
             {previews.map((preview, index) => (
               <div key={index} className="relative h-24 rounded-md overflow-hidden border">
-                <img
-                  src={preview || "/placeholder.svg"}
-                  alt={`Preview ${index}`}
-                  className="w-full h-full object-cover"
-                />
+                {preview.type === "image" ? (
+                  <img
+                    src={preview.url}
+                    alt={`Preview ${index}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={preview.url}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <button
-                  onClick={() => removeImage(index)}
+                  onClick={() => removeFile(index)}
                   className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1"
                 >
                   <X className="h-4 w-4 text-white" />
@@ -83,14 +96,14 @@ export default function ImageUploadPopup({ isOpen, onClose, onImagesSelected }: 
           <div className="flex justify-center">
             <Button variant="outline" onClick={triggerFileInput} className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Select Images
+              Select Media
             </Button>
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept="image/*"
+              accept="image/*,video/*"
               multiple
             />
           </div>
@@ -99,7 +112,7 @@ export default function ImageUploadPopup({ isOpen, onClose, onImagesSelected }: 
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm}>Add Images</Button>
+            <Button onClick={handleConfirm}>Add Media</Button>
           </div>
         </div>
       </div>

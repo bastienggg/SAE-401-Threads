@@ -18,8 +18,8 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
   const [content, setContent] = useState("")
   const [isBlocked, setIsBlocked] = useState(false)
   const [isImagePopupOpen, setIsImagePopupOpen] = useState(false)
-  const [selectedImages, setSelectedImages] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [selectedMedia, setSelectedMedia] = useState<File[]>([])
+  const [mediaPreviews, setMediaPreviews] = useState<{ type: "image" | "video"; url: string }[]>([])
 
   const pseudo = localStorage.getItem("pseudo")
 
@@ -28,65 +28,59 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
   }, [])
 
   const handlePost = async () => {
-    const pseudo = sessionStorage.getItem("Pseudo") as string;
-    const token = sessionStorage.getItem("Token") as string;
-  
+    const pseudo = sessionStorage.getItem("Pseudo") as string
+    const token = sessionStorage.getItem("Token") as string
+
     // Préparer les données en FormData
-    const formData = new FormData();
-    formData.append("content", content);
-    formData.append("pseudo", pseudo);
-  
-    // Ajouter les images au FormData
-    selectedImages.forEach((image) => {
-      formData.append("pictures[]", image);
-    });
-  
+    const formData = new FormData()
+    formData.append("content", content)
+    formData.append("pseudo", pseudo)
+
+    // Ajouter les médias (images et vidéos) au FormData
+    selectedMedia.forEach((media) => {
+      formData.append("media[]", media)
+    })
+
     try {
-      console.log("Sending post data as FormData:", formData); // Log pour debug
-      const response = await Post.setPost(formData, token);
-  
+      console.log("Sending post data as FormData:", formData) // Log pour debug
+      const response = await Post.setPost(formData, token)
+
       if (response?.code === "C-3132") {
-        console.warn("User is blocked. Showing popup.");
-        setIsBlocked(true); // Affiche le popup
-        return;
+        console.warn("User is blocked. Showing popup.")
+        setIsBlocked(true) // Affiche le popup
+        return
       }
-      setIsVisible(false);
-      onPostCreated(); // Appelle la fonction de rafraîchissement
+      setIsVisible(false)
+      onPostCreated() // Appelle la fonction de rafraîchissement
     } catch (error) {
-      console.error("Error while creating post:", error);
+      console.error("Error while creating post:", error)
     }
-  };
+  }
 
   const handleBlockedPopupClose = () => {
     sessionStorage.clear()
     window.location.href = "/"
   }
 
-  const handleImagesSelected = (images: File[]) => {
-    setSelectedImages(images)
+  const handleMediaSelected = (media: File[]) => {
+    setSelectedMedia(media)
 
-    // Generate previews for the selected images
-    const newPreviews: string[] = []
-    images.forEach((file) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          newPreviews.push(e.target.result as string)
-          if (newPreviews.length === images.length) {
-            setImagePreviews(newPreviews)
-          }
-        }
+    // Generate previews for the selected media
+    const newPreviews: { type: "image" | "video"; url: string }[] = []
+    media.forEach((file) => {
+      const fileType = file.type.startsWith("image") ? "image" : file.type.startsWith("video") ? "video" : null
+      if (fileType) {
+        const url = URL.createObjectURL(file)
+        newPreviews.push({ type: fileType, url })
       }
-      reader.readAsDataURL(file)
     })
+    setMediaPreviews(newPreviews)
   }
 
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index))
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
+  const removeMedia = (index: number) => {
+    setSelectedMedia((prev) => prev.filter((_, i) => i !== index))
+    setMediaPreviews((prev) => prev.filter((_, i) => i !== index))
   }
-
-  
 
   return (
     <>
@@ -94,10 +88,12 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
       <ImageUploadPopup
         isOpen={isImagePopupOpen}
         onClose={() => setIsImagePopupOpen(false)}
-        onImagesSelected={handleImagesSelected}
+        onImagesSelected={handleMediaSelected}
       />
       <div
-        className={`fixed h-h-full inset-0 flex items-end justify-center z-10 backdrop-blur-sm transition-transform duration-300 ${isVisible ? "translate-y-0" : "translate-y-full"}`}
+        className={`fixed h-h-full inset-0 flex items-end justify-center z-10 backdrop-blur-sm transition-transform duration-300 ${
+          isVisible ? "translate-y-0" : "translate-y-full"
+        }`}
       >
         <div className="bg-white p-4 rounded shadow-lg relative w-full h-3/4 flex flex-col gap-4">
           <div className="flex flex-row justify-between w-full border-b-2 border-b-neutral-200 p-2">
@@ -108,7 +104,9 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
           </div>
           <p className="font-bold">{pseudo}</p>
           <textarea
-            className={`border-none w-full h-full focus:outline-none resize-none ${charCount === 250 ? "text-red-500" : ""}`}
+            className={`border-none w-full h-full focus:outline-none resize-none ${
+              charCount === 250 ? "text-red-500" : ""
+            }`}
             placeholder="Start typing (0/250)"
             maxLength={250}
             onChange={(e) => {
@@ -119,18 +117,26 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
           ></textarea>
           <label className={charCount === 250 ? "text-red-500" : ""}>{charCount}/250</label>
 
-          {/* Image gallery */}
-          {imagePreviews.length > 0 && (
+          {/* Media gallery */}
+          {mediaPreviews.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mt-2">
-              {imagePreviews.map((preview, index) => (
+              {mediaPreviews.map((preview, index) => (
                 <div key={index} className="relative h-20 rounded-md overflow-hidden border">
-                  <img
-                    src={preview || "/placeholder.svg"}
-                    alt={`Preview ${index}`}
-                    className="w-full h-full object-cover"
-                  />
+                  {preview.type === "image" ? (
+                    <img
+                      src={preview.url || "/placeholder.svg"}
+                      alt={`Preview ${index}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={preview.url}
+                      controls
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                   <button
-                    onClick={() => removeImage(index)}
+                    onClick={() => removeMedia(index)}
                     className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1"
                   >
                     <X className="h-3 w-3 text-white" />
@@ -145,7 +151,7 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
               <ImageIcon className="h-5 w-5 text-gray-500" />
             </Button>
             <span className="text-sm text-gray-500">
-              {selectedImages.length > 0 ? `${selectedImages.length} image(s) selected` : "Add images"}
+              {selectedMedia.length > 0 ? `${selectedMedia.length} media file(s) selected` : "Add media"}
             </span>
           </div>
 
@@ -159,4 +165,3 @@ function NewPost({ onClose, onPostCreated }: NewPostProps) {
 }
 
 export default NewPost
-

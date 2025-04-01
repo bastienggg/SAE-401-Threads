@@ -4,6 +4,12 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "../../lib/utils"
 
+// Helper function to check if a file is a video
+const isVideo = (file: string) => {
+  const videoExtensions = [".mp4", ".webm", ".ogg"]
+  return videoExtensions.some((ext) => file.toLowerCase().endsWith(ext))
+}
+
 interface ImageCarouselProps {
   images: string[]
   className?: string
@@ -12,14 +18,25 @@ interface ImageCarouselProps {
 export function ImageCarousel({ images, className }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  // Return null if no images
   if (!images || images.length === 0) return null
 
-  // If only one image, just show it without controls
   if (images.length === 1) {
+    const media = images[0]
     return (
       <div className={cn("relative w-full rounded-md overflow-hidden", className)}>
-        <img src={images[0] || "/placeholder.svg"} alt="Post image" className="w-full h-auto object-cover rounded-md" />
+        {isVideo(media) ? (
+          <video
+            src={media}
+            controls
+            className="w-full h-auto object-cover rounded-md"
+          />
+        ) : (
+          <img
+            src={media || "/placeholder.svg"}
+            alt="Post media"
+            className="w-full h-auto object-cover rounded-md"
+          />
+        )}
       </div>
     )
   }
@@ -43,11 +60,19 @@ export function ImageCarousel({ images, className }: ImageCarouselProps) {
   return (
     <div className={cn("relative w-full rounded-md group", className)}>
       <div className="w-full h-full rounded-md overflow-hidden">
-        <img
-          src={images[currentIndex] || "/placeholder.svg"}
-          alt={`Post image ${currentIndex + 1}`}
-          className="w-full h-auto object-cover rounded-md transition-all duration-300 ease-in-out"
-        />
+        {isVideo(images[currentIndex]) ? (
+          <video
+            src={images[currentIndex]}
+            controls
+            className="w-full h-auto object-cover rounded-md transition-all duration-300 ease-in-out"
+          />
+        ) : (
+          <img
+            src={images[currentIndex] || "/placeholder.svg"}
+            alt={`Post media ${currentIndex + 1}`}
+            className="w-full h-auto object-cover rounded-md transition-all duration-300 ease-in-out"
+          />
+        )}
       </div>
 
       {/* Left Arrow */}
@@ -81,4 +106,3 @@ export function ImageCarousel({ images, className }: ImageCarouselProps) {
     </div>
   )
 }
-
