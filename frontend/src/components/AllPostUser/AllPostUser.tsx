@@ -16,6 +16,7 @@ interface PostType {
   like_count: number;
   user_liked: boolean;
   media?: string[];
+  is_censored?: boolean;
 }
 
 interface AllPostsProps {
@@ -132,6 +133,7 @@ const AllPostsUser = forwardRef(({ token, userId }: AllPostsProps, ref) => {
               isBlocked={post.user.is_blocked}
               hasBlockedMe={hasBlockedMe}
               media={post.media}
+              isCensored={post.is_censored}
             />
           ))}
           {loading && Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}

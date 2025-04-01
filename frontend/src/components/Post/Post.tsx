@@ -22,6 +22,7 @@ interface PostProps {
   hasBlockedMe?: boolean
   media?: string[]
   refreshPosts?: () => void
+  isCensored?: boolean
 }
 
 export default function Post({
@@ -37,6 +38,7 @@ export default function Post({
   hasBlockedMe = false,
   media,
   refreshPosts,
+  isCensored = false,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -57,6 +59,10 @@ export default function Post({
       return
     }
 
+    if (isCensored) {
+      return
+    }
+
     try {
       const response = await Like.AddLike(token, postId)
       if (response) {
@@ -71,6 +77,10 @@ export default function Post({
   const handleUnlike = async () => {
     if (!token) {
       console.error("Token non trouvé")
+      return
+    }
+
+    if (isCensored) {
       return
     }
 
@@ -124,21 +134,21 @@ export default function Post({
             </p>
             <p className="text-xs text-neutral-700">{new Date(createdAt).toLocaleString()}</p>
           </div>
-          {isBlocked ? (
-            <p className="text-red-500 font-bold">Cet utilisateur a été temporairement bloqué.</p>
-          ) : (
-            <p>{postContent}</p>
-          )}
+          <div className="flex flex-col gap-2">
+            <p className={`text-sm ${isCensored ? 'text-red-500 italic' : 'text-muted-foreground'}`}>
+              {content}
+            </p>
+          </div>
 
-          {postMedia && postMedia.length > 0 && (
+          {media && media.length > 0 && !isCensored && (
             <div className="mt-2">
-              <ImageCarousel images={postMedia} className="w-full" />
+              <ImageCarousel images={media} className="w-full" />
             </div>
           )}
         </div>
       </div>
-      {!isBlocked && !hasBlockedMe && (
-        <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center mt-2">
+        {!isBlocked && !hasBlockedMe && !isCensored && (
           <div className="flex items-center gap-2">
             <img
               src={isLiked ? "/public/svg/heart-filled.svg" : "/public/svg/heart.svg"}
@@ -148,23 +158,23 @@ export default function Post({
             />
             <span className="text-sm text-neutral-700">{likes}</span>
           </div>
+        )}
 
-          {isCurrentUser && (
-            <div className="flex items-center gap-2">
-              <Pencil
-                className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out text-neutral-600"
-                onClick={() => setShowEditModal(true)}
-              />
-              <img
-                src="/public/svg/trash.svg"
-                className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
-                alt="Supprimer"
-                onClick={() => setShowConfirm(true)}
-              />
-            </div>
-          )}
-        </div>
-      )}
+        {!isBlocked && !hasBlockedMe && isCurrentUser && (
+          <div className="flex items-center gap-2">
+            <Pencil
+              className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out text-neutral-600"
+              onClick={() => setShowEditModal(true)}
+            />
+            <img
+              src="/public/svg/trash.svg"
+              className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
+              alt="Supprimer"
+              onClick={() => setShowConfirm(true)}
+            />
+          </div>
+        )}
+      </div>
       {hasBlockedMe && (
         <div className="text-sm text-red-500 mt-2">
           Vous ne pouvez pas interagir avec ce post car l'utilisateur vous a bloqué

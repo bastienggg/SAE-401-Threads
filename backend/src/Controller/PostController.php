@@ -55,7 +55,7 @@ final class PostController extends AbstractController
     
             return [
                 'id' => $post->getId(),
-                'content' => $post->getContent(),
+                'content' => $post->isCensored() ? "Ce message enfreint les conditions d'utilisation de la plateforme" : $post->getContent(),
                 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
                 'user' => [
                     'id' => $userEntity->getId(),
@@ -66,11 +66,12 @@ final class PostController extends AbstractController
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
                 'media' => $media,
+                'is_censored' => $post->isCensored(),
             ];
         }, iterator_to_array($paginator));
     
         return $this->json([
-            'posts' => $posts,
+            'posts' => array_values($posts),
             'previous_page' => $previousPage,
             'next_page' => $nextPage,
         ]);
@@ -108,7 +109,7 @@ final class PostController extends AbstractController
     
             return [
                 'id' => $post->getId(),
-                'content' => $post->getContent(),
+                'content' => $post->isCensored() ? "Ce message enfreint les conditions d'utilisation de la plateforme" : $post->getContent(),
                 'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
                 'user' => [
                     'id' => $userEntity->getId(),
@@ -119,6 +120,7 @@ final class PostController extends AbstractController
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
                 'media' => $media,
+                'is_censored' => $post->isCensored(),
             ];
         }, iterator_to_array($paginator));
     
@@ -379,5 +381,49 @@ final class PostController extends AbstractController
         $entityManager->flush();
 
         return new JsonResponse(['message' => 'Comment added successfully']);
+    }
+
+    #[Route('/posts/{id}/censor', name: 'censor_post', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function censorPost(
+        int $id,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $post->setIsCensored(true);
+            $entityManager->flush();
+            return $this->json(['message' => 'Post censored successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to censor post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/posts/{id}/uncensor', name: 'uncensor_post', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function uncensorPost(
+        int $id,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $post->setIsCensored(false);
+            $entityManager->flush();
+            return $this->json(['message' => 'Post uncensored successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to uncensor post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }

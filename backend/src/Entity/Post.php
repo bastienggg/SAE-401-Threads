@@ -27,6 +27,9 @@ class Post
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $media = [];
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    private bool $is_censored = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -85,6 +88,17 @@ class Post
     {
         $this->media = $media;
     
+        return $this;
+    }
+
+    public function isCensored(): bool
+    {
+        return $this->is_censored;
+    }
+
+    public function setIsCensored(bool $is_censored): static
+    {
+        $this->is_censored = $is_censored;
         return $this;
     }
 }
