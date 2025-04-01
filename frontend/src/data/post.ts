@@ -3,7 +3,7 @@ import { deleteRequest, getRequest, postRequest } from "../lib/api-request";
 interface PostType {
     getPost: (token: string, page: number) => Promise<any>;
     setPost: (post: FormData, token: string) => Promise<any>;
-    getUserPosts: (token: string, userId: string) => Promise<any> ;
+    getUserPosts: (token: string, userId: string, page: number) => Promise<any>;
     deletePost:(token:string, postID:string) => Promise<any>;
     updatePost: (token: string, postID: string, updatedData: FormData) => Promise<any>;
 }
@@ -31,9 +31,9 @@ let Post: PostType = {
     }
   },
 
-  getUserPosts: async function (token: string, userId: string) {
+  getUserPosts: async function (token: string, userId: string, page: number = 1) {
     try {
-      let data = await getRequest(`user/${userId}/posts`, token);
+      let data = await getRequest(`user/${userId}/posts?page=${page}`, token);
       return data;
     } catch (error) {
       console.error(`Error fetching posts for user ${userId}:`, error);

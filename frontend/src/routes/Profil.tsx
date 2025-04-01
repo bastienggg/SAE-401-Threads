@@ -5,7 +5,6 @@ import ProfileHeader from "../components/profile-header/profile-header";
 import ProfileInfo from "../components/profile-info/profile-info";
 import Navbar from "../components/Navbar/Navbar";
 import ProfileSkeleton from "../components/profil-squeleton/ProfileSkeleton";
-import { Button } from '../components/ui/button';
 import Header from '../components/ui/header';
 
 import AllPostsUser from '../components/AllPostUser/AllPostUser';
@@ -59,34 +58,33 @@ export default function ProfilePage() {
   if (loading) {
     return <ProfileSkeleton />;
   }
-
   return (
-    <main className="flex flex-col items-center justify-start h-screen w-full">
-      <Header />
-      <div className="w-full max-w-3xl">
-        <div className="overflow-hidden">
-          <div className="relative">
-            <ProfileBanner banner={user.banner} />
-            <ProfileAvatar avatar={user.avatar} pseudo={user.pseudo} />
-          </div>
+    <div>
+      <main className="flex flex-col items-center justify-start h-screen w-full">
+        <Header />
+        <div className="w-full max-w-3xl">
+          <div className="overflow-hidden">
+            <div className="relative">
+              <ProfileBanner banner={user.banner} />
+              <ProfileAvatar avatar={user.avatar} pseudo={user.pseudo} />
+            </div>
 
-          <ProfileHeader 
-            pseudo={user.pseudo} 
-            email={user.email} 
-            isCurrentUser={true} 
-            followersCount={user.followersCount}
-            isFollowing={user.isFollowing}
-            userId={sessionStorage.getItem("id") || ''}
-          />
-          <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
+            <ProfileHeader 
+              pseudo={user.pseudo} 
+              email={user.email} 
+              isCurrentUser={true} 
+              followersCount={user.followersCount}
+              isFollowing={user.isFollowing}
+              userId={sessionStorage.getItem("id") || ''}
+            />
+            <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
+          </div>
         </div>
-      </div>
-      <div className="w-full mt-8">
-        <AllPostsUser key={refreshKey} token={sessionStorage.getItem("Token") || ''} userId={sessionStorage.getItem("id") || ''} />
-      </div>
-      <div className="w-full">
-        <Navbar onPostCreated={refreshPosts} />
-      </div>
-    </main>
+        <div className="w-full mt-8">
+          <AllPostsUser key={refreshKey} token={sessionStorage.getItem("Token") || ''} userId={sessionStorage.getItem("id") || ''} />
+        </div>
+      </main>
+      <Navbar onPostCreated={refreshPosts} />
+    </div>
   );
 }

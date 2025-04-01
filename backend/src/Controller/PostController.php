@@ -18,6 +18,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use App\Repository\PostRepository;
 use App\Repository\LikeRepository;
+use App\Repository\UserBlockRepository;
+use App\Entity\Comment;
 
 final class PostController extends AbstractController
 {
@@ -299,4 +301,83 @@ final class PostController extends AbstractController
         return $this->json(['message' => 'Post deleted successfully'], Response::HTTP_OK);
     }
     
+    #[Route('/posts/{id}/like', name: 'like_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function likePost(
+        int $id,
+        EntityManagerInterface $entityManager,
+        PostRepository $postRepository,
+        UserBlockRepository $userBlockRepository
+    ): JsonResponse {
+        $user = $this->getUser();
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier si l'utilisateur est bloqué
+        if ($userBlockRepository->isBlocked($post->getUser()->getId(), $user->getId())) {
+            return new JsonResponse(['error' => 'Cannot interact with posts from blocked users'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $like = $entityManager->getRepository(Like::class)->findOneBy([
+            'post' => $post,
+            'user' => $user,
+        ]);
+
+        if ($like) {
+            $entityManager->remove($like);
+            $message = 'Post unliked successfully';
+        } else {
+            $like = new Like();
+            $like->setPost($post);
+            $like->setUser($user);
+            $entityManager->persist($like);
+            $message = 'Post liked successfully';
+        }
+
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => $message]);
+    }
+
+    #[Route('/posts/{id}/comment', name: 'comment_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function commentPost(
+        int $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        PostRepository $postRepository,
+        UserBlockRepository $userBlockRepository
+    ): JsonResponse {
+        $user = $this->getUser();
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return new JsonResponse(['error' => 'Post not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier si l'utilisateur est bloqué
+        if ($userBlockRepository->isBlocked($post->getUser()->getId(), $user->getId())) {
+            return new JsonResponse(['error' => 'Cannot interact with posts from blocked users'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $content = $data['content'] ?? null;
+
+        if (!$content) {
+            return new JsonResponse(['error' => 'Content is required'], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $comment = new Comment();
+        $comment->setPost($post);
+        $comment->setUser($user);
+        $comment->setContent($content);
+
+        $entityManager->persist($comment);
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => 'Comment added successfully']);
+    }
 }

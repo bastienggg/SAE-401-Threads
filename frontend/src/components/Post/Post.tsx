@@ -19,6 +19,7 @@ interface PostProps {
   likeCount: number
   userLiked: boolean
   isBlocked: boolean
+  hasBlockedMe?: boolean
   media?: string[]
   refreshPosts?: () => void
 }
@@ -33,6 +34,7 @@ export default function Post({
   likeCount,
   userLiked,
   isBlocked,
+  hasBlockedMe = false,
   media,
   refreshPosts,
 }: PostProps) {
@@ -135,7 +137,7 @@ export default function Post({
           )}
         </div>
       </div>
-      {!isBlocked && (
+      {!isBlocked && !hasBlockedMe && (
         <div className="flex justify-between items-center mt-2">
           <div className="flex items-center gap-2">
             <img
@@ -161,6 +163,11 @@ export default function Post({
               />
             </div>
           )}
+        </div>
+      )}
+      {hasBlockedMe && (
+        <div className="text-sm text-red-500 mt-2">
+          Vous ne pouvez pas interagir avec ce post car l'utilisateur vous a bloqué
         </div>
       )}
 

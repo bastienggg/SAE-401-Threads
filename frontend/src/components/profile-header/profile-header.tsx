@@ -13,6 +13,7 @@ interface ProfileHeaderProps {
     isFollowing: boolean;
     userId: string;
     isBlocked?: boolean;
+    hasBlockedMe?: boolean;
 }
 
 export default function ProfileHeader({
@@ -23,14 +24,25 @@ export default function ProfileHeader({
     isFollowing: initialIsFollowing,
     userId,
     isBlocked: initialIsBlocked = false,
+    hasBlockedMe: initialHasBlockedMe = false,
 }: ProfileHeaderProps) {
     const navigate = useNavigate();
     const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
     const [isBlocked, setIsBlocked] = useState(initialIsBlocked);
+    const [hasBlockedMe, setHasBlockedMe] = useState(initialHasBlockedMe);
     const [currentFollowersCount, setCurrentFollowersCount] = useState<number>(followersCount);
+
+    console.log('ProfileHeader received hasBlockedMe:', initialHasBlockedMe);
+
+    console.log('Initial states:', {
+        isFollowing: initialIsFollowing,
+        isBlocked: initialIsBlocked,
+        hasBlockedMe: initialHasBlockedMe,
+    });
 
     const handleFollowClick = async () => {
         let token = sessionStorage.getItem("Token") || "";
+        console.log('Attempting to follow/unfollow:', { isFollowing, userId });
 
         try {
             if (isFollowing) {
@@ -38,12 +50,14 @@ export default function ProfileHeader({
                 if (response) {
                     setIsFollowing(false);
                     setCurrentFollowersCount((prevCount) => prevCount - 1);
+                    console.log('Unfollowed successfully');
                 }
             } else {
                 const response = await Follow.followUser(token, userId);
                 if (response) {
                     setIsFollowing(true);
                     setCurrentFollowersCount((prevCount) => prevCount + 1);
+                    console.log('Followed successfully');
                 }
             }
         } catch (error) {
@@ -53,17 +67,29 @@ export default function ProfileHeader({
 
     const handleBlockClick = async () => {
         let token = sessionStorage.getItem("Token") || "";
+        console.log('Attempting to block/unblock:', { isBlocked, userId });
 
         try {
             if (isBlocked) {
                 const response = await Blocked.UnblockUser(token, userId);
                 if (response) {
                     setIsBlocked(false);
+                    console.log('Unblocked successfully');
                 }
             } else {
-                const response = await Blocked.BlockUser(token, userId);
-                if (response) {
-                    setIsBlocked(true);
+                try {
+                    const response = await Blocked.BlockUser(token, userId);
+                    if (response) {
+                        setIsBlocked(true);
+                        console.log('Blocked successfully');
+                    }
+                } catch (error: any) {
+                    if (error.message?.includes('409')) {
+                        setIsBlocked(true);
+                        console.log('Already blocked');
+                    } else {
+                        console.error("Erreur lors du blocage/déblocage :", error);
+                    }
                 }
             }
         } catch (error) {
@@ -91,12 +117,18 @@ export default function ProfileHeader({
                         >
                             <Ban className="h-5 w-5" />
                         </Button>
-                        <Button
-                            onClick={handleFollowClick}
-                            className="hover:cursor-pointer"
-                        >
-                            {isFollowing ? "Se désabonner" : "S'abonner"}
-                        </Button>
+                        {hasBlockedMe ? (
+                            <div className="text-sm text-red-500 font-medium">
+                                Cet utilisateur vous a bloqué
+                            </div>
+                        ) : (
+                            <Button
+                                onClick={handleFollowClick}
+                                className="hover:cursor-pointer"
+                            >
+                                {isFollowing ? "Se désabonner" : "S'abonner"}
+                            </Button>
+                        )}
                     </>
                 )}
                 {isCurrentUser && (

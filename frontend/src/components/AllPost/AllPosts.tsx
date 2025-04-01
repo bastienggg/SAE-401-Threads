@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from "react";
 import Post from "../Post/Post";
 import SkeletonPost from "../Post/SkeletonPost";
 import { Post as PostData } from "../../data/post";
@@ -25,28 +25,63 @@ interface AllPostsProps {
 const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef(null);
 
-  const fetchPosts = async () => {
-    setLoading(true);
-    const data = await PostData.getPost(token, 1);
+  const fetchPosts = async (page: number = 1) => {
+    if (page === 1) {
+      setLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    const data = await PostData.getPost(token, page);
     if (data) {
-      setPosts(data.posts);
+      if (page === 1) {
+        setPosts(data.posts);
+      } else {
+        setPosts(prevPosts => [...prevPosts, ...data.posts]);
+      }
+      setHasMore(data.next_page !== null);
+      setCurrentPage(page);
     } else {
       console.error("Error fetching posts");
     }
     setLoading(false);
+    setIsLoadingMore(false);
   };
 
   const refreshPosts = async () => {
-    await fetchPosts();
+    setCurrentPage(1);
+    setHasMore(true);
+    await fetchPosts(1);
   };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !loading) {
+          fetchPosts(currentPage + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [currentPage, hasMore, isLoadingMore, loading]);
 
   useImperativeHandle(ref, () => ({
     refreshPosts,
   }));
 
   useEffect(() => {
-    fetchPosts();
+    fetchPosts(1);
   }, []);
 
   return (
@@ -67,6 +102,9 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
         />
       ))}
       {loading && Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}
+      <div ref={observerTarget} className="w-full h-10">
+        {isLoadingMore && <SkeletonPost />}
+      </div>
     </section>
   );
 });

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, RefreshCw } from "lucide-react"
+import { ArrowLeft, RefreshCw, Ban } from "lucide-react"
 
 import { Button } from "../ui/button"
 import { Label } from "../ui/label"
 import { Switch } from "../ui/switch"
+import BlockedUsersList from "../BlockedUsersList/BlockedUsersList"
 
 export default function Settings() {
   const [autoRefresh, setAutoRefresh] = useState(() => {
@@ -33,7 +34,7 @@ export default function Settings() {
           <h1 className="text-lg font-semibold">Paramètres</h1>
         </div>
       </header>
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-4 space-y-4">
         <div className="w-full border rounded-lg shadow-sm p-4 bg-card">
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Général</h2>
@@ -58,6 +59,18 @@ export default function Settings() {
               onChange={setAutoRefresh}
             />
           </div>
+        </div>
+
+        <div className="w-full border rounded-lg shadow-sm p-4 bg-card mb-14">
+          <div className="mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Utilisateurs bloqués</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Gérez les utilisateurs que vous avez bloqués
+            </p>
+          </div>
+          <BlockedUsersList />
         </div>
       </main>
     </div>

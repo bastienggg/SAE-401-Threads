@@ -8,6 +8,8 @@ import AllPostsUser from "../components/AllPostUser/AllPostUser";
 import Header from "../components/ui/header";
 import Navbar from "../components/Navbar/Navbar";
 import ProfileSkeleton from "../components/profil-squeleton/ProfileSkeleton";
+import BlockedUsersList from "../components/BlockedUsersList/BlockedUsersList";
+import { Blocked } from "../data/blocked";
 
 import { User } from "../data/user";
 
@@ -21,9 +23,10 @@ export default function UserProfilePage() {
         place: "",
         banner: "",
         link: "",
-        followersCount: 0, // Ajout du compteur d'abonnés
-        isFollowing: false, // Ajout de la propriété isFollowing
+        followersCount: 0,
+        isFollowing: false,
         isBlocked: false,
+        hasBlockedMe: false,
     });
     const [loading, setLoading] = useState(true);
 
@@ -33,8 +36,40 @@ export default function UserProfilePage() {
     useEffect(() => {
         const fetchData = async () => {
             let token = sessionStorage.getItem("Token") || "";
-            let data = await User.getUserInfos(token, userId || "");
+            
+            // Vérifier d'abord si l'utilisateur nous a bloqué
+            let hasBlockedMe = false;
+            try {
+                const isBlockedResponse = await fetch(`http://localhost:8080/api/is-blocked/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const isBlockedData = await isBlockedResponse.json();
+                hasBlockedMe = isBlockedData.isBlocked;
+                console.log('API response for isBlocked:', isBlockedData);
+            } catch (error) {
+                console.error("Erreur lors de la vérification du blocage:", error);
+            }
 
+            // Si l'utilisateur nous a bloqué, on ne charge pas les données
+            if (hasBlockedMe) {
+                setUser(prev => ({
+                    ...prev,
+                    hasBlockedMe: true,
+                    email: "Utilisateur bloqué",
+                    pseudo: "Utilisateur bloqué",
+                    bio: "Vous ne pouvez pas voir le profil de cet utilisateur car il vous a bloqué",
+                    followersCount: 0,
+                    isFollowing: false,
+                }));
+                setLoading(false);
+                console.log('User has blocked me, updating state:', { hasBlockedMe: true });
+                return;
+            }
+
+            // Sinon, on charge les données normalement
+            let data = await User.getUserInfos(token, userId || "");
             setUser({
                 email: data.email,
                 pseudo: data.pseudo,
@@ -43,11 +78,13 @@ export default function UserProfilePage() {
                 place: data.place,
                 banner: data.banner,
                 link: data.link,
-                followersCount: data.followersCount, // Récupération du compteur
-                isFollowing: data.isFollowing, // Récupération de l'état d'abonnement
-                isBlocked: data.isBlocked || false,
+                followersCount: data.followersCount,
+                isFollowing: data.isFollowing,
+                isBlocked: data.isBlocked,
+                hasBlockedMe: false,
             });
             setLoading(false);
+            console.log('User data loaded, updating state:', { hasBlockedMe: false });
         };
 
         fetchData();
@@ -71,17 +108,25 @@ export default function UserProfilePage() {
                         pseudo={user.pseudo}
                         email={user.email}
                         isCurrentUser={isCurrentUser}
-                        followersCount={user.followersCount} // Passage du compteur
-                        isFollowing={user.isFollowing} // Passage de l'état d'abonnement
-                        userId={userId || ""} // Ajout de l'ID utilisateur
+                        followersCount={user.followersCount}
+                        isFollowing={user.isFollowing}
+                        userId={userId || ""}
                         isBlocked={user.isBlocked}
+                        hasBlockedMe={user.hasBlockedMe}
                     />
                     <ProfileInfo bio={user.bio} place={user.place} link={user.link} />
                 </div>
             </div>
-            <div className="w-full mt-8">
-                <AllPostsUser token={sessionStorage.getItem("Token") || ""} userId={userId || ""} />
-            </div>
+            {!user.hasBlockedMe && (
+                <div className="w-full mt-8">
+                    <AllPostsUser token={sessionStorage.getItem("Token") || ""} userId={userId || ""} />
+                </div>
+            )}
+            {isCurrentUser && (
+                <div className="w-full max-w-3xl mt-8">
+                    <BlockedUsersList />
+                </div>
+            )}
             <Navbar onPostCreated={() => console.log("Post created")} />
         </main>
     );

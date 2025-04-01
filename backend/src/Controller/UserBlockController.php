@@ -46,12 +46,19 @@ class UserBlockController extends AbstractController
         $userBlock->setBlocker($blocker);
         $userBlock->setBlocked($blocked);
 
-        // Supprimer les abonnements existants
+        // Supprimer les abonnements existants dans les deux sens
         $follows = $followRepository->findBy([
             'follower' => $blocker,
             'profile' => $blocked
         ]);
+        foreach ($follows as $follow) {
+            $entityManager->remove($follow);
+        }
 
+        $follows = $followRepository->findBy([
+            'follower' => $blocked,
+            'profile' => $blocker
+        ]);
         foreach ($follows as $follow) {
             $entityManager->remove($follow);
         }
@@ -118,7 +125,7 @@ class UserBlockController extends AbstractController
         UserBlockRepository $userBlockRepository
     ): JsonResponse {
         $user = $this->getUser();
-        $isBlocked = $userBlockRepository->isBlocked($user->getId(), $id);
+        $isBlocked = $userBlockRepository->isBlocked($id, $user->getId());
 
         return new JsonResponse(['isBlocked' => $isBlocked]);
     }
