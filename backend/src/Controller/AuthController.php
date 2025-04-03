@@ -15,7 +15,7 @@ use Symfony\Component\Mime\Email;
 use Twig\Environment;
 use Psr\Log\LoggerInterface;
 
-
+#[Route('/api')]
 class AuthController extends AbstractController
 {
     #[Route('/login', name: 'api_login', methods: ['POST'])]

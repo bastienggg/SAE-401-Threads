@@ -22,6 +22,8 @@ use App\Repository\UserBlockRepository;
 use App\Entity\Comment;
 use Psr\Log\LoggerInterface;
 
+
+#[Route('/api')]
 final class PostController extends AbstractController
 {
     private $logger;
@@ -78,6 +80,7 @@ final class PostController extends AbstractController
                         'avatar' => $avatarUrl,
                         'pseudo' => $userEntity->getPseudo(),
                         'is_blocked' => $userEntity->isBlocked(),
+                        'read_only' => $userEntity->isReadOnly(),
                     ],
                     'like_count' => $likeCount,
                     'user_liked' => $userLiked,
@@ -141,6 +144,7 @@ final class PostController extends AbstractController
                     'avatar' => $avatarUrl,
                     'pseudo' => $userEntity->getPseudo(),
                     'is_blocked' => $userEntity->isBlocked(),
+                    'read_only' => $userEntity->isReadOnly(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,
@@ -412,6 +416,11 @@ final class PostController extends AbstractController
             return new JsonResponse(['error' => 'Cannot interact with posts from blocked users'], JsonResponse::HTTP_FORBIDDEN);
         }
 
+        // Vérifier si le post est en mode lecture seule
+        if ($post->getUser()->isReadOnly()) {
+            return new JsonResponse(['error' => 'This user has disabled comments on their posts'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
         $data = json_decode($request->getContent(), true);
         $content = $data['content'] ?? null;
 
@@ -487,6 +496,11 @@ final class PostController extends AbstractController
             return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
         }
 
+        // Vérifier si le post est en mode lecture seule
+        if ($post->getUser()->isReadOnly()) {
+            return $this->json(['replies' => []]);
+        }
+
         $baseUrl = $this->getParameter('base_url');
         $user = $this->getUser();
 
@@ -523,6 +537,7 @@ final class PostController extends AbstractController
                     'avatar' => $avatarUrl,
                     'pseudo' => $userEntity->getPseudo(),
                     'is_blocked' => $userEntity->isBlocked(),
+                    'read_only' => $userEntity->isReadOnly(),
                 ],
                 'like_count' => $likeCount,
                 'user_liked' => $userLiked,

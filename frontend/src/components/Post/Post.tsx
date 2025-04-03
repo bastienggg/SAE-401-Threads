@@ -25,6 +25,7 @@ interface PostProps {
   refreshPosts?: () => void
   isCensored?: boolean
   isReply?: boolean
+  isReadOnly?: boolean
 }
 
 export default function Post({
@@ -42,6 +43,7 @@ export default function Post({
   refreshPosts,
   isCensored = false,
   isReply = false,
+  isReadOnly = false,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -70,7 +72,7 @@ export default function Post({
 
   // Charger le nombre de réponses au montage du composant
   useEffect(() => {
-    if (!token) return;
+    if (!token || isReadOnly) return;
     
     const loadRepliesCount = async () => {
       try {
@@ -84,7 +86,7 @@ export default function Post({
     };
 
     loadRepliesCount();
-  }, [token, postId]);
+  }, [token, postId, isReadOnly]);
 
   // Fermer le menu si on clique en dehors
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function Post({
   }
 
   const loadReplies = async () => {
-    if (!token || isLoadingReplies) return;
+    if (!token || isLoadingReplies || isReadOnly) return;
     
     setIsLoadingReplies(true);
     try {
@@ -190,6 +192,7 @@ export default function Post({
   };
 
   const handleShowReplies = () => {
+    if (isReadOnly) return;
     setShowReplies(!showReplies);
     if (!showReplies && replies.length === 0) {
       loadReplies();
@@ -198,7 +201,7 @@ export default function Post({
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!token || ((!replyContent.trim() && replyMedia.length === 0) || isSubmitting)) return
+    if (!token || ((!replyContent.trim() && replyMedia.length === 0) || isSubmitting) || isReadOnly) return
 
     setIsSubmitting(true)
     try {
@@ -358,19 +361,21 @@ export default function Post({
               />
               <span className="text-sm text-neutral-700">{likes}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <MessageCircle 
-                className="h-5 w-5 text-neutral-500 hover:text-blue-500 hover:cursor-pointer"
-                onClick={handleShowReplies}
-              />
-              <span className="text-sm text-neutral-700">{replies.length}</span>
-            </div>
+            {!isReadOnly && (
+              <div className="flex items-center gap-1">
+                <MessageCircle 
+                  className="h-5 w-5 text-neutral-500 hover:text-blue-500 hover:cursor-pointer"
+                  onClick={handleShowReplies}
+                />
+                <span className="text-sm text-neutral-700">{replies.length}</span>
+              </div>
+            )}
           </>
         )}
       </div>
 
       {/* Affichage des réponses */}
-      {showReplies && !isReply && (
+      {showReplies && !isReply && !isReadOnly && (
         <div className="mt-2 space-y-2 border-l-2 border-neutral-200 pl-4">
           {!isBlocked && !hasBlockedMe && !isCensored && (
             <div className="flex items-start gap-2 py-2 border-b border-neutral-100">
@@ -492,7 +497,7 @@ export default function Post({
                         {new Date(reply.created_at).toLocaleString()}
                       </span>
                     </div>
-                    {Number(reply.user.id) === currentUserId && (
+                    {Number(reply.user.id) === currentUserId && !isReadOnly && (
                       <div className="relative" ref={replyMenuRef}>
                         <button 
                           className="p-1 hover:bg-neutral-100 rounded-full"
@@ -558,7 +563,7 @@ export default function Post({
                       className="w-4 h-4 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
                       alt={reply.user_liked ? "Unlike" : "Like"}
                       onClick={async () => {
-                        if (!token) return;
+                        if (!token || isReadOnly) return;
                         try {
                           if (reply.user_liked) {
                             await Like.Deletelike(token, reply.id.toString());

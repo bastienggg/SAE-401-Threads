@@ -6,6 +6,8 @@ interface UserType {
     Usermodify: (token: string, userId: string, dataUser: { pseudo: string, email: string }) => Promise<any>;
     getUserInfos: (token: string, userId: string) => Promise<any>;
     userUpdate: (token: string, userId: string, formData: FormData) => Promise<any>;
+    getReadOnlyState: (token: string) => Promise<boolean>;
+    updateReadOnlyState: (token: string, readOnly: boolean) => Promise<any>;
 }
 
 let User: UserType = {
@@ -32,6 +34,19 @@ let User: UserType = {
     userUpdate: async function (token, userId, formData) {
         let data = await postRequest(`users-update/${userId}`, formData, token);
         console.log('Response data:', data); // Log the response data
+        return data;
+    },
+    getReadOnlyState: async function (token) {
+        console.log('Token used for getReadOnlyState:', token); // Log the token
+        let data = await getRequest("users-read-only", token) as { readOnly: boolean };
+        console.log('Read-only state:', data); // Log the response data
+        return data.readOnly;
+    },
+    updateReadOnlyState: async function (token, readOnly) {
+        console.log('Token used for updateReadOnlyState:', token); // Log the token
+        console.log('Read-only value being sent:', readOnly); // Log the value being sent
+        let data = await postRequest("users-read-only", { readOnly }, token);
+        console.log('Updated read-only state:', data); // Log the response data
         return data;
     }
 };

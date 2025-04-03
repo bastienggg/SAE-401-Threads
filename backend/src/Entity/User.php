@@ -63,6 +63,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?bool $blocked = null;
 
+    #[ORM\Column]
+    private ?bool $readOnly = false;
+
     #[ORM\OneToMany(mappedBy: 'profile', targetEntity: Follow::class)]
     private Collection $followers;
 
@@ -271,6 +274,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->blocked = $blocked;
 
+        return $this;
+    }
+
+    public function isReadOnly(): ?bool
+    {
+        return $this->readOnly;
+    }
+
+    public function setReadOnly(bool $readOnly): static
+    {
+        $this->readOnly = $readOnly;
         return $this;
     }
 

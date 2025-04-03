@@ -13,7 +13,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use App\Repository\PostRepository;
 
 
-#[Route('/like', name: 'api_likes_')]
+#[Route('/api/like', name: 'api_likes_')]
 class LikeController extends AbstractController
 {
     #[Route('/{postId}', name: 'add', methods: ['POST'], format: 'json')]

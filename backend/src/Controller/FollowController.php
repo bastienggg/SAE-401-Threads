@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+#[Route('/api')]
 final class FollowController extends AbstractController
 {
     #[Route('/follow/{id}', name: 'app_follow_create', methods: ['POST'])]

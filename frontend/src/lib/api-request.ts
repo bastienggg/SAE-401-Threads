@@ -1,4 +1,4 @@
-let API_URL = "http://localhost:8080/"; // URL de base de l'API (à définir)
+let API_URL = "http://localhost:8080/api/"; // URL de base de l'API (à définir)
 
 
 const getRequest = async function <T>(uri: string, token?: string): Promise<T | false> {

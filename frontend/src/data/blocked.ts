@@ -8,7 +8,7 @@ interface BlockedType {
 let Blocked: BlockedType = {
     BlockUser: async function (token: string, userId: string) {
         try {
-            let data = await postRequest(`api/block/${userId}`, {}, token);
+            let data = await postRequest(`block/${userId}`, {}, token);
             return data;
         } catch (error) {
             console.error('Error blocking user:', error);
@@ -17,7 +17,7 @@ let Blocked: BlockedType = {
     },
     UnblockUser: async function (token: string, userId: string) {
         try {
-            let data = await deleteRequest(`api/unblock/${userId}`, token);
+            let data = await deleteRequest(`unblock/${userId}`, token);
             return data;
         } catch (error) {
             console.error('Error unblocking user:', error);

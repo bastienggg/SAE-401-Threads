@@ -15,7 +15,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-
+#[Route('/api')]
 final class UserController extends AbstractController
 {
 
@@ -182,11 +182,39 @@ final class UserController extends AbstractController
              'link' => $user->getLink(),
              'followersCount' => $followersCount,
              'isFollowing' => $isFollowing,
+             'read_only' => $user->isReadOnly(),
          ];
      
          return new JsonResponse($data);
      }
 
+    #[Route('/users/{id}/read-only', name: 'toggle_read_only', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function toggleReadOnly(
+        int $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        UserRepository $userRepository
+    ): JsonResponse {
+        $user = $userRepository->find($id);
+        $currentUser = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        if ($user->getId() !== $currentUser->getId()) {
+            return new JsonResponse(['error' => 'You can only modify your own settings'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $readOnly = $data['readOnly'] ?? false;
+
+        $user->setReadOnly($readOnly);
+        $entityManager->flush();
+
+        return new JsonResponse(['message' => 'Read-only mode updated successfully']);
+    }
 
     #[Route('/verify-admin', name: 'verify_admin', methods: ['POST'])]
     public function verifyAdmin(Request $request, UserRepository $userRepository): JsonResponse
@@ -210,5 +238,47 @@ final class UserController extends AbstractController
 
         return new JsonResponse(['code' => 'C-1101'], JsonResponse::HTTP_OK);
     }
+
+    #[Route('/users-read-only', name: 'get_read_only', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getReadOnly(): JsonResponse
+    {
+        $user = $this->getUser();
+    
+        if (!$user) {
+            return new JsonResponse(['error' => 'User not authenticated'], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+    
+        if (!$user instanceof \App\Entity\User) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+    
+        try {
+            $readOnly = $user->isReadOnly();
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => 'Failed to retrieve read-only state', 'details' => $e->getMessage()], JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    
+        return new JsonResponse(['readOnly' => $readOnly]);
+    }
+    
+    #[Route('/users-read-only', name: 'update_read_only', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function updateReadOnly(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $user = $this->getUser();
+    
+        if (!$user instanceof \App\Entity\User) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+    
+        $data = json_decode($request->getContent(), true);
+        $readOnly = $data['readOnly'] ?? false;
+    
+        $user->setReadOnly($readOnly);
+        $entityManager->flush();
+    
+        return new JsonResponse(['message' => 'Read-only mode updated successfully']);
+    }    
 
 }

@@ -7,16 +7,35 @@ import { Button } from "../ui/button"
 import { Label } from "../ui/label"
 import { Switch } from "../ui/switch"
 import BlockedUsersList from "../BlockedUsersList/BlockedUsersList"
+import { User } from "../../data/user"
 
 export default function Settings() {
   const [autoRefresh, setAutoRefresh] = useState(() => {
-    // Charger l'état initial depuis le sessionStorage
     const savedState = sessionStorage.getItem("autoRefresh")
-    return savedState ? JSON.parse(savedState) : true // Activé par défaut
+    return savedState ? JSON.parse(savedState) : true
   })
 
+  const [readOnly, setReadOnly] = useState(false)
+  const token = sessionStorage.getItem("Token") || "" // Récupérer le token depuis le stockage
+
+  console.log('Token retrieved from sessionStorage:', token); // Log the token
+
   useEffect(() => {
-    // Sauvegarder l'état dans le sessionStorage à chaque changement
+    // Charger l'état initial du mode lecture seule depuis l'API
+    User.getReadOnlyState(token)
+      .then((state) => setReadOnly(state))
+      .catch((error) => console.error("Failed to fetch read-only state:", error))
+  }, [token])
+
+  const toggleReadOnly = (value: boolean) => {
+    console.log('Toggling read-only mode to:', value); // Log the value being toggled
+    setReadOnly(value)
+    User.updateReadOnlyState(token, value).catch((error) =>
+      console.error("Failed to update read-only state:", error)
+    )
+  }
+
+  useEffect(() => {
     sessionStorage.setItem("autoRefresh", JSON.stringify(autoRefresh))
   }, [autoRefresh])
 
@@ -58,6 +77,29 @@ export default function Settings() {
               checked={autoRefresh}
               onChange={setAutoRefresh}
             />
+          </div>
+        </div>
+
+        <div className="w-full border rounded-lg shadow-sm p-4 bg-card">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Mode Lecture Seule</h2>
+            <p className="text-sm text-muted-foreground">
+              Activez ou désactivez le mode lecture seule pour votre compte.
+            </p>
+          </div>
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <Label htmlFor="read-only" className="text-base">
+                  Mode Lecture Seule
+                </Label>
+              </div>
+            </div>
+              <Switch
+                checked={readOnly} 
+                onChange={toggleReadOnly} 
+              />
           </div>
         </div>
 

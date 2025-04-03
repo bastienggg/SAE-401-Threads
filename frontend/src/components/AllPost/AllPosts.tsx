@@ -12,6 +12,7 @@ interface PostType {
     avatar: string;
     id: string;
     is_blocked: boolean;
+    read_only?: boolean;
   };
   like_count: number;
   user_liked: boolean;
@@ -118,6 +119,7 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
           isBlocked={post.user.is_blocked}
           media={post.media}
           isCensored={post.is_censored}
+          isReadOnly={post.user.read_only}
         />
       ))}
       {loading && Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}

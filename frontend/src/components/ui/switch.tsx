@@ -1,4 +1,3 @@
-import * as React from "react"
 import { cn } from "../../lib/utils"
 import { cva, VariantProps } from "class-variance-authority"
 
@@ -29,13 +28,10 @@ const switchVariants = cva(
 
 const Switch = (props: SwitchProps) => {
   const { className, checked = false, onChange, variant, ...rest } = props
-  const [isChecked, setIsChecked] = React.useState(checked)
 
   const handleClick = () => {
-    const newChecked = !isChecked
-    setIsChecked(newChecked)
     if (onChange) {
-      onChange(newChecked)
+      onChange(!checked) // Inverse la valeur et appelle la fonction onChange
     }
   }
 
@@ -43,10 +39,10 @@ const Switch = (props: SwitchProps) => {
     <button
       type="button"
       role="switch"
-      aria-checked={isChecked}
+      aria-checked={checked}
       onClick={handleClick}
       className={cn(
-        switchVariants({ variant, isChecked }),
+        switchVariants({ variant, isChecked: checked }),
         className
       )}
       {...rest}
@@ -54,7 +50,7 @@ const Switch = (props: SwitchProps) => {
       <span
         className={cn(
           "pointer-events-none block size-4 rounded-full ring-0 transition-transform bg-white",
-          isChecked ? "translate-x-[calc(100%-2px)]" : "translate-x-0"
+          checked ? "translate-x-[calc(100%-2px)]" : "translate-x-0"
         )}
       />
     </button>

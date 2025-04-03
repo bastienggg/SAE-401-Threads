@@ -11,6 +11,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+
+#[Route('/api')]
 final class BlockedController extends AbstractController
 {
     #[Route('/blocked/{id}', name: 'app_block_user', methods: ['POST'])]
