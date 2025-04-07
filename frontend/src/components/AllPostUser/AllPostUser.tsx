@@ -19,6 +19,7 @@ interface PostType {
   media?: string[];
   is_censored?: boolean;
   is_pinned?: boolean;
+  replies_count: number;
 }
 
 interface AllPostsUserProps {
@@ -134,6 +135,7 @@ const AllPostsUser = forwardRef(({ token, userId }: AllPostsUserProps, ref) => {
                     refreshPosts={refreshPosts}
                     isCensored={post.is_censored}
                     isPinned={true}
+                    repliesCount={post.replies_count}
                   />
                 </div>
               </div>
@@ -165,6 +167,7 @@ const AllPostsUser = forwardRef(({ token, userId }: AllPostsUserProps, ref) => {
                 refreshPosts={refreshPosts}
                 isCensored={post.is_censored}
                 isPinned={false}
+                repliesCount={post.replies_count}
               />
             </div>
           ))}

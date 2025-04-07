@@ -87,6 +87,7 @@ final class PostController extends AbstractController
                     'media' => $media,
                     'is_censored' => $post->isCensored(),
                     'is_pinned' => $post->isPinned(),
+                    'replies_count' => $post->getReplies()->count(),
                 ];
             }, iterator_to_array($paginator));
     
@@ -152,6 +153,7 @@ final class PostController extends AbstractController
                 'media' => $media,
                 'is_censored' => $post->isCensored(),
                 'is_pinned' => $post->isPinned(),
+                'replies_count' => $post->getReplies()->count(),
             ];
         }, iterator_to_array($paginator));
     

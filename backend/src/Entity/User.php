@@ -61,7 +61,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $link = null;
 
     #[ORM\Column]
-    private ?bool $blocked = null;
+    private ?bool $blocked = false;
 
     #[ORM\Column]
     private ?bool $readOnly = false;

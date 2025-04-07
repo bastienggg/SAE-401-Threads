@@ -43,5 +43,12 @@ services:
     depends_on:
       - mysql
 
+  mailhog:
+    container_name: SAE401-mailhog
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   database:

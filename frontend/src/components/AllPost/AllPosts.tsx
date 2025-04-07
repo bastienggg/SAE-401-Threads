@@ -18,6 +18,8 @@ interface PostType {
   user_liked: boolean;
   media?: string[];
   is_censored?: boolean;
+  is_pinned?: boolean;
+  replies_count: number;
 }
 
 interface AllPostsProps {
@@ -29,17 +31,17 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const observerTarget = useRef(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useRef<HTMLDivElement | null>(null);
 
   const fetchPosts = async (page: number = 1) => {
     try {
+      console.log("Début du chargement des posts pour la page:", page);
+      
       if (page === 1) {
         setLoading(true);
         setError(null);
-      } else {
-        setIsLoadingMore(true);
       }
 
       console.log(`Fetching posts for page ${page}`);
@@ -51,52 +53,78 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
         return;
       }
 
+      console.log("Données reçues:", {
+        postsCount: data.posts?.length,
+        nextPage: data.next_page,
+        currentPage: page
+      });
+
       if (page === 1) {
         setPosts(data.posts);
       } else {
         setPosts(prevPosts => [...prevPosts, ...data.posts]);
       }
-      setHasMore(data.next_page !== null);
+
+      setHasMore(data.posts?.length > 0 && data.next_page !== null);
       setCurrentPage(page);
     } catch (error) {
       console.error('Error in fetchPosts:', error);
       setError('Une erreur est survenue lors du chargement des posts');
     } finally {
       setLoading(false);
-      setIsLoadingMore(false);
     }
   };
 
-  const refreshPosts = async () => {
-    setCurrentPage(1);
-    setHasMore(true);
-    await fetchPosts(1);
-  };
+  const attachObserver = () => {
+    if (loading) return;
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !loading) {
-          fetchPosts(currentPage + 1);
-        }
-      },
-      { threshold: 0.1 }
-    );
+    if (observer.current) observer.current.disconnect();
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        console.log("Dernier post visible, chargement de la page suivante");
+        setCurrentPage(prevPage => prevPage + 1);
+      }
+    }, {
+      threshold: 0.5,
+      rootMargin: '100px'
+    });
+
+    if (lastPostElementRef.current) {
+      observer.current.observe(lastPostElementRef.current);
+      console.log("Observer attaché au dernier post");
     }
-
-    return () => observer.disconnect();
-  }, [currentPage, hasMore, isLoadingMore, loading]);
-
-  useImperativeHandle(ref, () => ({
-    refreshPosts,
-  }));
+  };
 
   useEffect(() => {
     fetchPosts(1);
   }, []);
+
+  useEffect(() => {
+    attachObserver();
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, [loading, hasMore, posts.length]);
+
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchPosts(currentPage);
+    }
+  }, [currentPage]);
+
+  const refreshPosts = async () => {
+    setCurrentPage(1);
+    setPosts([]);
+    setHasMore(true);
+    await fetchPosts(1);
+  };
+
+  useImperativeHandle(ref, () => ({
+    refreshPosts,
+  }));
 
   return (
     <section className="flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2 mb-14">
@@ -105,27 +133,40 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
           {error}
         </div>
       )}
-      {posts.map((post) => (
-        <Post
-          key={post.id}
-          content={post.content}
-          pseudo={post.user.pseudo}
-          avatar={post.user.avatar}
-          createdAt={post.created_at}
-          userId={post.user.id}
-          postId={post.id.toString()}
-          likeCount={post.like_count}
-          userLiked={post.user_liked}
-          isBlocked={post.user.is_blocked}
-          media={post.media}
-          isCensored={post.is_censored}
-          isReadOnly={post.user.read_only}
-        />
+      {posts.map((post, index) => (
+        <div 
+          key={post.id} 
+          ref={index === posts.length - 1 ? lastPostElementRef : null}
+          className="w-full max-w-2xl mb-4"
+        >
+          <Post
+            content={post.content}
+            pseudo={post.user.pseudo}
+            createdAt={post.created_at}
+            avatar={post.user.avatar}
+            userId={post.user.id}
+            postId={post.id.toString()}
+            likeCount={post.like_count}
+            userLiked={post.user_liked}
+            isBlocked={post.user.is_blocked}
+            media={post.media}
+            refreshPosts={refreshPosts}
+            isCensored={post.is_censored}
+            isPinned={post.is_pinned}
+            repliesCount={post.replies_count}
+          />
+        </div>
       ))}
-      {loading && Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}
-      <div ref={observerTarget} className="w-full h-10">
-        {isLoadingMore && <SkeletonPost />}
-      </div>
+      {loading && Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className="w-full max-w-2xl mb-4">
+          <SkeletonPost />
+        </div>
+      ))}
+      {hasMore && !loading && (
+        <div className="w-full max-w-2xl mb-4">
+          <SkeletonPost />
+        </div>
+      )}
     </section>
   );
 });

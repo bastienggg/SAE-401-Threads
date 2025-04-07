@@ -28,6 +28,7 @@ interface PostProps {
   isReply?: boolean
   isReadOnly?: boolean
   isPinned?: boolean
+  repliesCount?: number
 }
 
 export default function Post({
@@ -47,6 +48,7 @@ export default function Post({
   isReply = false,
   isReadOnly = false,
   isPinned = false,
+  repliesCount = 0,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -84,48 +86,6 @@ export default function Post({
       minute: '2-digit'
     });
   };
-
-  // Charger le nombre de réponses au montage du composant
-  useEffect(() => {
-    if (!token || isReadOnly) return;
-    
-    const loadRepliesCount = async () => {
-      try {
-        const repliesData = await PostAPI.getReplies(token, postId);
-        if (repliesData) {
-          setReplies(repliesData.replies || []);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement du nombre de réponses:", error);
-      }
-    };
-
-    loadRepliesCount();
-  }, [token, postId, isReadOnly]);
-
-  // Fermer le menu si on clique en dehors
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenu(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  // Ajouter un useEffect pour gérer le clic en dehors du menu des réponses
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (replyMenuRef.current && !replyMenuRef.current.contains(event.target as Node)) {
-        setShowReplyMenu(null)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
 
   const handleLike = async () => {
     if (!token) {
@@ -190,28 +150,21 @@ export default function Post({
     refreshPosts?.()
   }
 
-  const loadReplies = async () => {
-    if (!token || isLoadingReplies || isReadOnly) return;
-    
-    setIsLoadingReplies(true);
-    try {
-      const repliesData = await PostAPI.getReplies(token, postId);
-      if (repliesData) {
-        setReplies(repliesData.replies || []);
+  const handleShowReplies = async () => {
+    if (!showReplies && token) {
+      setIsLoadingReplies(true);
+      try {
+        const data = await PostAPI.getReplies(token, postId);
+        if (data && data.replies) {
+          setReplies(data.replies);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des réponses:", error);
+      } finally {
+        setIsLoadingReplies(false);
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement des réponses:", error);
-    } finally {
-      setIsLoadingReplies(false);
     }
-  };
-
-  const handleShowReplies = () => {
-    if (isReadOnly) return;
     setShowReplies(!showReplies);
-    if (!showReplies && replies.length === 0) {
-      loadReplies();
-    }
   };
 
   const handleSubmitReply = async (e: React.FormEvent) => {
@@ -220,6 +173,7 @@ export default function Post({
 
     setIsSubmitting(true)
     try {
+      console.log("Création d'une nouvelle réponse pour le post:", postId);
       const formData = new FormData()
       if (replyContent.trim()) {
         formData.append("content", replyContent.trim())
@@ -230,11 +184,14 @@ export default function Post({
         formData.append(`media[${index}]`, file)
       })
 
+      console.log("Envoi de la réponse avec le contenu:", replyContent);
       const response = await PostAPI.createReply(token, postId, formData)
+      console.log("Réponse du serveur:", response);
+      
       if (response) {
         setReplyContent("")
         setReplyMedia([])
-        loadReplies()
+        handleShowReplies()
       }
     } catch (error) {
       console.error("Erreur lors de l'envoi de la réponse:", error)
@@ -279,11 +236,11 @@ export default function Post({
   }
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow mb-4 relative">
+    <div className="bg-white p-4 rounded-lg shadow mb-4 relative w-full">
       <div className="flex items-start space-x-3">
         <Link to={`/profile/${userId}`} className="flex-shrink-0">
           <img
-            src={avatar || "/default-avatar.png"}
+            src={avatar || "/public/profil/default.jpg"}
             alt={`Avatar de ${pseudo}`}
             className="w-10 h-10 rounded-full object-cover"
           />
@@ -390,7 +347,7 @@ export default function Post({
                   className="h-5 w-5 text-neutral-500 hover:text-blue-500 hover:cursor-pointer"
                   onClick={handleShowReplies}
                 />
-                <span className="text-sm text-neutral-700">{replies.length}</span>
+                <span className="text-sm text-neutral-700">{repliesCount}</span>
               </div>
             )}
           </>
