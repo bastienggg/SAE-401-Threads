@@ -106,7 +106,7 @@ const AllPostsUser = forwardRef(({ token, userId }: AllPostsUserProps, ref) => {
   const unpinnedPosts = posts.filter(post => !post.is_pinned);
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto mb-14">
       {/* Posts épinglés */}
       {pinnedPosts.length > 0 && (
         <div className="mb-6">
