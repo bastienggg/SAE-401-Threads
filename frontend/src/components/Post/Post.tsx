@@ -9,6 +9,7 @@ import { ImageCarousel } from "../image-carousel/image-carousel"
 import { EditPostModal } from "../edit-post-modal/edit-post-modal"
 import { MessageCircle } from "lucide-react"
 import { Blocked } from "../../data/blocked"
+import { Link } from "react-router-dom"
 
 interface PostProps {
   content: string
@@ -26,6 +27,7 @@ interface PostProps {
   isCensored?: boolean
   isReply?: boolean
   isReadOnly?: boolean
+  isPinned?: boolean
 }
 
 export default function Post({
@@ -44,6 +46,7 @@ export default function Post({
   isCensored = false,
   isReply = false,
   isReadOnly = false,
+  isPinned = false,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -65,10 +68,22 @@ export default function Post({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [replyMedia, setReplyMedia] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
-
+  const [isPostPinned, setIsPostPinned] = useState(isPinned)
   const currentUserId = Number(sessionStorage.getItem("id"))
   const isCurrentUser = currentUserId === Number(userId)
   const token = sessionStorage.getItem("Token")
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false)
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   // Charger le nombre de réponses au montage du composant
   useEffect(() => {
@@ -237,99 +252,107 @@ export default function Post({
     setReplyMedia(prev => prev.filter((_, i) => i !== index))
   }
 
+  const handlePinClick = async () => {
+    if (!token) return;
+    try {
+      if (isPostPinned) {
+        const response = await PostAPI.unpinPost(token, postId);
+        if (response) {
+          setIsPostPinned(false);
+          if (refreshPosts) refreshPosts();
+        }
+      } else {
+        const response = await PostAPI.pinPost(token, postId);
+        if (response) {
+          setIsPostPinned(true);
+          if (refreshPosts) refreshPosts();
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'épinglage/désépinglage du post:", error);
+    }
+    setShowMenu(false);
+  };
+
   if (!isVisible) {
     return null
   }
 
   return (
-    <div className={`flex flex-col gap-4 p-4 w-full bg-white rounded-md shadow-md my-2 ${isReply ? 'ml-4 sm:ml-8 border-l-2 border-neutral-200 pl-4' : ''}`}>
-      <div className="flex flex-row gap-4 items-start">
-        <img 
-          src={avatar || "/public/profil/default.jpg"} 
-          alt="profil" 
-          className={`${isReply ? 'w-7' : 'w-9'} aspect-square rounded-full`} 
-        />
-        <div className="w-full flex flex-col gap-2">
-          <div className="flex flex-row items-center gap-2 justify-between w-full">
-            <div className="flex items-center gap-2">
-              <p
-                className={`font-bold text-neutral-900 hover:cursor-pointer hover:underline ${isReply ? 'text-sm' : ''}`}
-                onClick={() => navigate(`/profile/${userId}`)}
-              >
-                @{pseudo}
-              </p>
-              <span className="text-neutral-500">·</span>
-              <p className={`text-neutral-500 ${isReply ? 'text-xs' : 'text-sm'}`}>
-                {new Date(createdAt).toLocaleString()}
-              </p>
+    <div className="bg-white p-4 rounded-lg shadow mb-4 relative">
+      <div className="flex items-start space-x-3">
+        <Link to={`/profile/${userId}`} className="flex-shrink-0">
+          <img
+            src={avatar || "/default-avatar.png"}
+            alt={`Avatar de ${pseudo}`}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+        </Link>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Link to={`/profile/${userId}`} className="font-semibold text-gray-900 hover:underline">
+                {pseudo}
+              </Link>
+              <span className="text-gray-500 text-sm">{formatDate(createdAt)}</span>
+              {isPinned && (
+                <div className="flex items-center text-blue-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                  </svg>
+                  <span className="text-xs font-medium">Épinglé</span>
+                </div>
+              )}
             </div>
             {!isBlocked && !hasBlockedMe && (
               <div className="relative" ref={menuRef}>
                 <button 
-                  className="p-1 hover:bg-neutral-100 rounded-full"
+                  className="text-gray-500 hover:text-gray-700"
                   onClick={() => setShowMenu(!showMenu)}
                 >
-                  <svg className="w-4 h-4 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="1" />
-                    <circle cx="19" cy="12" r="1" />
-                    <circle cx="5" cy="12" r="1" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                   </svg>
                 </button>
                 {showMenu && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                    {isCurrentUser ? (
-                      <>
-                        <button
-                          className="w-full px-4 py-2 text-sm text-left hover:bg-neutral-100 flex items-center gap-2"
-                          onClick={() => {
-                            setShowEditModal(true)
-                            setShowMenu(false)
-                          }}
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                          Modifier
-                        </button>
-                        <button
-                          className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-neutral-100 flex items-center gap-2"
-                          onClick={() => {
-                            setShowConfirm(true)
-                            setShowMenu(false)
-                          }}
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                          Supprimer
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-neutral-100 flex items-center gap-2"
-                        onClick={async () => {
-                          if (!token) return;
-                          try {
-                            const response = await Blocked.BlockUser(token, userId);
-                            if (response) {
-                              refreshPosts?.();
-                            }
-                          } catch (error) {
-                            console.error("Erreur lors du blocage de l'utilisateur:", error);
-                          }
-                          setShowMenu(false);
-                        }}
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                          <path d="M15 9l-6 6" />
-                          <path d="M9 9l6 6" />
-                        </svg>
-                        Bloquer @{pseudo}
-                      </button>
-                    )}
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                    <div className="py-1">
+                      {isCurrentUser && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setShowEditModal(true)
+                              setShowMenu(false)
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Modifier
+                          </button>
+                          <button
+                            onClick={handlePinClick}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                            </svg>
+                            {isPostPinned ? "Désépingler" : "Épingler"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowConfirm(true)
+                              setShowMenu(false)
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          >
+                            Supprimer
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

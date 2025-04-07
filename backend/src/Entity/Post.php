@@ -32,6 +32,9 @@ class Post
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $is_censored = false;
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    private bool $is_pinned = false;
+
     #[ORM\ManyToOne(targetEntity: Post::class, inversedBy: 'replies')]
     #[ORM\JoinColumn(name: 'parent_id', referencedColumnName: 'id', nullable: true)]
     private ?Post $parent = null;
@@ -112,6 +115,17 @@ class Post
     public function setIsCensored(bool $is_censored): static
     {
         $this->is_censored = $is_censored;
+        return $this;
+    }
+
+    public function isPinned(): bool
+    {
+        return $this->is_pinned;
+    }
+
+    public function setIsPinned(bool $is_pinned): static
+    {
+        $this->is_pinned = $is_pinned;
         return $this;
     }
 

@@ -10,6 +10,8 @@ interface PostType {
     uncensorPost: (token: string, postID: string) => Promise<any>;
     getReplies: (token: string, postId: string) => Promise<any>;
     createReply: (token: string, postId: string, formData: FormData) => Promise<any>;
+    pinPost: (token: string, postId: string) => Promise<any>;
+    unpinPost: (token: string, postId: string) => Promise<any>;
 }
 
 let Post: PostType = {
@@ -107,6 +109,26 @@ let Post: PostType = {
       return data;
     } catch (error) {
       console.error("Error creating reply:", error);
+      return null;
+    }
+  },
+
+  pinPost: async function (token: string, postId: string) {
+    try {
+      const data = await postRequest(`posts/${postId}/pin`, new FormData(), token);
+      return data;
+    } catch (error) {
+      console.error(`Error pinning post ${postId}:`, error);
+      return null;
+    }
+  },
+
+  unpinPost: async function (token: string, postId: string) {
+    try {
+      const data = await postRequest(`posts/${postId}/unpin`, new FormData(), token);
+      return data;
+    } catch (error) {
+      console.error(`Error unpinning post ${postId}:`, error);
       return null;
     }
   }

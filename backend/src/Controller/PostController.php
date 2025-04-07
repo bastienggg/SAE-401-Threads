@@ -86,6 +86,7 @@ final class PostController extends AbstractController
                     'user_liked' => $userLiked,
                     'media' => $media,
                     'is_censored' => $post->isCensored(),
+                    'is_pinned' => $post->isPinned(),
                 ];
             }, iterator_to_array($paginator));
     
@@ -150,6 +151,7 @@ final class PostController extends AbstractController
                 'user_liked' => $userLiked,
                 'media' => $media,
                 'is_censored' => $post->isCensored(),
+                'is_pinned' => $post->isPinned(),
             ];
         }, iterator_to_array($paginator));
     
@@ -637,6 +639,60 @@ final class PostController extends AbstractController
                 'trace' => $e->getTraceAsString()
             ]);
             return $this->json(['error' => 'Failed to create reply: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/posts/{id}/pin', name: 'pin_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function pinPost(
+        int $id,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user = $this->getUser();
+        if ($post->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'You are not authorized to pin this post'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $post->setIsPinned(true);
+            $entityManager->flush();
+            return $this->json(['message' => 'Post pinned successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to pin post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/posts/{id}/unpin', name: 'unpin_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function unpinPost(
+        int $id,
+        PostRepository $postRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
+        $post = $postRepository->find($id);
+
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user = $this->getUser();
+        if ($post->getUser()->getId() !== $user->getId()) {
+            return $this->json(['error' => 'You are not authorized to unpin this post'], Response::HTTP_FORBIDDEN);
+        }
+
+        try {
+            $post->setIsPinned(false);
+            $entityManager->flush();
+            return $this->json(['message' => 'Post unpinned successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Failed to unpin post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

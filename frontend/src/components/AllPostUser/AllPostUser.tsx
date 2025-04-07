@@ -18,134 +18,162 @@ interface PostType {
   user_liked: boolean;
   media?: string[];
   is_censored?: boolean;
+  is_pinned?: boolean;
 }
 
-interface AllPostsProps {
+interface AllPostsUserProps {
   token: string;
   userId: string;
 }
 
-const AllPostsUser = forwardRef(({ token, userId }: AllPostsProps, ref) => {
+const AllPostsUser = forwardRef(({ token, userId }: AllPostsUserProps, ref) => {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasBlockedMe, setHasBlockedMe] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const observerTarget = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastPostElementRef = useRef<HTMLDivElement | null>(null);
 
-  const fetchPosts = async (page: number = 1) => {
-    if (page === 1) {
-      setLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
-    
-    // Vérifier d'abord si l'utilisateur nous a bloqué
-    if (page === 1) {
-      try {
-        const isBlockedResponse = await fetch(`http://localhost:8080/api/is-blocked/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const isBlockedData = await isBlockedResponse.json();
-        setHasBlockedMe(isBlockedData.isBlocked);
-        
-        // Si l'utilisateur nous a bloqué, on ne charge pas les posts
-        if (isBlockedData.isBlocked) {
-          setPosts([]);
-          setLoading(false);
-          return;
+  const fetchPosts = async (pageNum: number) => {
+    try {
+      const data = await PostData.getUserPosts(token, userId, pageNum);
+      if (data && data.posts) {
+        if (pageNum === 1) {
+          setPosts(data.posts);
+        } else {
+          setPosts(prev => [...prev, ...data.posts]);
         }
-      } catch (error) {
-        console.error("Erreur lors de la vérification du blocage:", error);
-        setHasBlockedMe(false);
+        setHasMore(data.posts.length > 0);
       }
+    } catch (err) {
+      setError("Erreur lors du chargement des posts");
+      console.error("Erreur lors du chargement des posts:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Sinon, on charge les posts normalement
-    const data = await PostData.getUserPosts(token, userId, page);
-    if (data) {
-      if (page === 1) {
-        setPosts(data.posts);
-      } else {
-        setPosts(prevPosts => [...prevPosts, ...data.posts]);
-      }
-      setHasMore(data.next_page !== null);
-      setCurrentPage(page);
-    } else {
-      console.error("Error fetching posts");
-    }
-    setLoading(false);
-    setIsLoadingMore(false);
   };
 
+  useEffect(() => {
+    fetchPosts(page);
+  }, [page]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+
+    if (lastPostElementRef.current) {
+      observer.current.observe(lastPostElementRef.current);
+    }
+
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, [loading, hasMore]);
+
+  useImperativeHandle(ref, () => ({
+    refreshPosts: async () => {
+      setPage(1);
+      setPosts([]);
+      setLoading(true);
+      await fetchPosts(1);
+    }
+  }));
+
   const refreshPosts = async () => {
-    setCurrentPage(1);
-    setHasMore(true);
+    setPage(1);
+    setPosts([]);
+    setLoading(true);
     await fetchPosts(1);
   };
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !loading) {
-          fetchPosts(currentPage + 1);
-        }
-      },
-      { threshold: 0.1 }
-    );
+  if (error) {
+    return <div className="text-red-500 text-center p-4">{error}</div>;
+  }
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [currentPage, hasMore, isLoadingMore, loading]);
-
-  useImperativeHandle(ref, () => ({
-    refreshPosts,
-  }));
-
-  useEffect(() => {
-    fetchPosts(1);
-  }, [userId]);
+  // Séparer les posts épinglés et non épinglés
+  const pinnedPosts = posts.filter(post => post.is_pinned);
+  const unpinnedPosts = posts.filter(post => !post.is_pinned);
 
   return (
-    <section className="flex flex-col overflow-y-auto items-center w-full bg-neutral-100 px-2 mb-14">
-      {hasBlockedMe ? (
-        <div className="text-sm text-red-500 font-medium p-4">
-          Vous ne pouvez pas voir les posts de cet utilisateur car il vous a bloqué
-        </div>
-      ) : (
-        <>
-          {posts.map((post) => (
-            <Post
-              key={post.id}
-              content={post.content}
-              pseudo={post.user.pseudo}
-              avatar={post.user.avatar}
-              createdAt={post.created_at}
-              userId={post.user.id}
-              postId={post.id.toString()}
-              likeCount={post.like_count}
-              userLiked={post.user_liked}
-              isBlocked={post.user.is_blocked}
-              hasBlockedMe={hasBlockedMe}
-              media={post.media}
-              isCensored={post.is_censored}
-              isReadOnly={post.user.read_only}
-            />
-          ))}
-          {loading && Array.from({ length: 5 }).map((_, index) => <SkeletonPost key={index} />)}
-          <div ref={observerTarget} className="w-full h-10">
-            {isLoadingMore && <SkeletonPost />}
+    <div className="w-full max-w-3xl mx-auto">
+      {/* Posts épinglés */}
+      {pinnedPosts.length > 0 && (
+        <div className="mb-6">
+          <div className="bg-blue-50 p-3 rounded-lg mb-3 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+            </svg>
+            <span className="text-blue-600 font-medium">Tweets épinglés</span>
           </div>
-        </>
+          <div className="space-y-4">
+            {pinnedPosts.map((post, index) => (
+              <div key={post.id} ref={index === pinnedPosts.length - 1 ? lastPostElementRef : null}>
+                <div className="relative">
+                  <div className="absolute -left-2 top-0 bottom-0 w-1 bg-blue-500 rounded-full"></div>
+                  <Post
+                    content={post.content}
+                    pseudo={post.user.pseudo}
+                    createdAt={post.created_at}
+                    avatar={post.user.avatar}
+                    userId={post.user.id}
+                    postId={post.id.toString()}
+                    likeCount={post.like_count}
+                    userLiked={post.user_liked}
+                    isBlocked={post.user.is_blocked}
+                    media={post.media}
+                    refreshPosts={refreshPosts}
+                    isCensored={post.is_censored}
+                    isPinned={true}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
-    </section>
+
+      {/* Posts non épinglés */}
+      {loading && page === 1 ? (
+        Array(3).fill(0).map((_, index) => (
+          <SkeletonPost key={index} />
+        ))
+      ) : (
+        <div className="space-y-4">
+          {unpinnedPosts.map((post, index) => (
+            <div key={post.id} ref={index === unpinnedPosts.length - 1 ? lastPostElementRef : null}>
+              <Post
+                content={post.content}
+                pseudo={post.user.pseudo}
+                createdAt={post.created_at}
+                avatar={post.user.avatar}
+                userId={post.user.id}
+                postId={post.id.toString()}
+                likeCount={post.like_count}
+                userLiked={post.user_liked}
+                isBlocked={post.user.is_blocked}
+                media={post.media}
+                refreshPosts={refreshPosts}
+                isCensored={post.is_censored}
+                isPinned={false}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 });
+
+AllPostsUser.displayName = "AllPostsUser";
 
 export default AllPostsUser;
