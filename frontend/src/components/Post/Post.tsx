@@ -86,6 +86,26 @@ export default function Post({
     });
   };
 
+  const formatContent = (content: string) => {
+    // Regex pour les hashtags et mentions
+    const hashtagRegex = /#[\w\u0590-\u05ff]+/g;
+    const mentionRegex = /@[\w\u0590-\u05ff]+/g;
+
+    // Remplacer les hashtags par des liens
+    let formattedContent = content.replace(hashtagRegex, (match) => {
+      const tag = match.slice(1); // Enlever le #
+      return `<a href="/search?q=%23${tag}" class="text-blue-500 hover:underline">${match}</a>`;
+    });
+
+    // Remplacer les mentions par des liens
+    formattedContent = formattedContent.replace(mentionRegex, (match) => {
+      const username = match.slice(1); // Enlever le @
+      return `<a href="/search?q=@${username}" class="text-blue-500 hover:underline">${match}</a>`;
+    });
+
+    return formattedContent;
+  };
+
   const handleLike = async () => {
     if (!token) {
       console.error("Token non trouvé")
@@ -315,9 +335,10 @@ export default function Post({
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <p className={`${isCensored || isBlocked ? 'text-red-500 italic' : 'text-muted-foreground'} ${isReply ? 'text-sm' : ''}`}>
-              {isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : content}
-            </p>
+            <p 
+              className={`${isCensored || isBlocked ? 'text-red-500 italic' : 'text-muted-foreground'} ${isReply ? 'text-sm' : ''}`}
+              dangerouslySetInnerHTML={{ __html: formatContent(isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : content) }}
+            />
           </div>
 
           {media && media.length > 0 && !isCensored && (

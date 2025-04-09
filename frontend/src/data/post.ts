@@ -12,6 +12,7 @@ interface PostType {
     createReply: (token: string, postId: string, formData: FormData) => Promise<any>;
     pinPost: (token: string, postId: string) => Promise<any>;
     unpinPost: (token: string, postId: string) => Promise<any>;
+    searchPosts: (token: string, query: string) => Promise<any>;
 }
 
 let Post: PostType = {
@@ -130,6 +131,16 @@ let Post: PostType = {
     } catch (error) {
       console.error(`Error unpinning post ${postId}:`, error);
       return null;
+    }
+  },
+
+  searchPosts: async function (token: string, query: string) {
+    try {
+      const response = await getRequest(`search/posts?q=${encodeURIComponent(query)}`, token);
+      return response;
+    } catch (error) {
+      console.error('Erreur lors de la recherche de posts:', error);
+      throw error;
     }
   }
 };

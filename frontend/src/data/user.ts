@@ -8,6 +8,7 @@ interface UserType {
     userUpdate: (token: string, userId: string, formData: FormData) => Promise<any>;
     getReadOnlyState: (token: string) => Promise<boolean>;
     updateReadOnlyState: (token: string, readOnly: boolean) => Promise<any>;
+    searchUsers: (token: string, query: string) => Promise<any>;
 }
 
 let User: UserType = {
@@ -48,6 +49,15 @@ let User: UserType = {
         let data = await postRequest("users-read-only", { readOnly }, token);
         console.log('Updated read-only state:', data); // Log the response data
         return data;
+    },
+    searchUsers: async function (token: string, query: string) {
+        try {
+            const response = await getRequest(`search/users?q=${encodeURIComponent(query)}`, token);
+            return response;
+        } catch (error) {
+            console.error('Erreur lors de la recherche d\'utilisateurs:', error);
+            throw error;
+        }
     }
 };
 

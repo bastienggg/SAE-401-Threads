@@ -56,6 +56,19 @@ class PostRepository extends ServiceEntityRepository
             throw new \Exception('Erreur lors de la pagination des posts utilisateur: ' . $e->getMessage());
         }
     }
+
+    public function searchPosts(string $query)
+    {
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.user', 'u')
+            ->where('p.content LIKE :query')
+            ->orWhere('u.pseudo LIKE :query')
+            ->setParameter('query', '%' . $query . '%')
+            ->orderBy('p.created_at', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Post[] Returns an array of Post objects
     //     */
