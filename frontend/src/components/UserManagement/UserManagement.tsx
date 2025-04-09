@@ -6,7 +6,7 @@ import { EditUserDialog } from "../userDialogue/Userdialogue";
 import { User } from "../../data/user";
 import { UserManagementSqueleton } from "./UserManagementSqueleton";
 import { Switch } from "../ui/switch";
-import { Blocked } from "../../data/blocked";
+import { AdminBlock } from "../../data/blocked";
 
 interface User {
   id: number;
@@ -58,15 +58,15 @@ export default function UserManagement() {
   const handleToggleBlock = async (user: User) => {
     const token = sessionStorage.getItem("Token");
     if (!token) {
-      console.error("Token not found");
+      console.error("Token non trouvé");
       return;
     }
 
     try {
       if (user.isBlocked) {
-        await Blocked.UnblockUser(token, user.id.toString());
+        await AdminBlock.unblockUser(token, user.id.toString());
       } else {
-        await Blocked.BlockUser(token, user.id.toString());
+        await AdminBlock.blockUser(token, user.id.toString());
       }
 
       // Mettre à jour l'état local après le changement
@@ -76,7 +76,7 @@ export default function UserManagement() {
         )
       );
     } catch (error) {
-      console.error("Error toggling block status:", error);
+      console.error("Erreur lors du changement de statut de blocage:", error);
     }
   };
 

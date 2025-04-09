@@ -8,7 +8,6 @@ import { Like } from "../../data/like"
 import { ImageCarousel } from "../image-carousel/image-carousel"
 import { EditPostModal } from "../edit-post-modal/edit-post-modal"
 import { MessageCircle } from "lucide-react"
-import { Blocked } from "../../data/blocked"
 import { Link } from "react-router-dom"
 
 interface PostProps {

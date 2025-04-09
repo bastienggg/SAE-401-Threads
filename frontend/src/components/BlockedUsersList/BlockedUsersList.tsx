@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../../data/user';
-import { Blocked } from '../../data/blocked';
+import { UserBlock } from '../../data/blocked';
 import { Button } from '../ui/button';
 import { Ban } from 'lucide-react';
 
@@ -21,15 +21,10 @@ export default function BlockedUsersList() {
             if (!token) return;
 
             try {
-                const response = await fetch('http://localhost:8080/api/blocked-users', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                const data = await response.json();
+                const data = await UserBlock.getBlockedUsers(token);
                 setBlockedUsers(data);
             } catch (error) {
-                console.error('Error fetching blocked users:', error);
+                console.error('Erreur lors de la récupération des utilisateurs bloqués:', error);
             } finally {
                 setLoading(false);
             }
@@ -43,18 +38,10 @@ export default function BlockedUsersList() {
         if (!token) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/unblock/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.ok) {
-                setBlockedUsers(blockedUsers.filter(user => user.id !== userId));
-            }
+            await UserBlock.unblockUser(token, userId.toString());
+            setBlockedUsers(blockedUsers.filter(user => user.id !== userId));
         } catch (error) {
-            console.error('Error unblocking user:', error);
+            console.error('Erreur lors du déblocage de l\'utilisateur:', error);
         }
     };
 

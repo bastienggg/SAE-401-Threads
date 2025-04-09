@@ -1,8 +1,8 @@
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
 import { Follow } from "../../data/follow";
-import { Blocked } from "../../data/blocked";
-import { useState } from "react";
+import { UserBlock } from "../../data/blocked";
+import { useState, useEffect } from "react";
 import { Ban } from "lucide-react";
 
 interface ProfileHeaderProps {
@@ -31,6 +31,34 @@ export default function ProfileHeader({
     const [currentFollowersCount, setCurrentFollowersCount] = useState(followersCount);
     const [isBlocked, setIsBlocked] = useState(initialIsBlocked);
     const [hasBlockedMe, setHasBlockedMe] = useState(initialHasBlockedMe);
+
+    // Vérifier l'état de blocage au chargement
+    useEffect(() => {
+        const checkBlockStatus = async () => {
+            const token = sessionStorage.getItem("Token");
+            if (!token || isCurrentUser) return;
+
+            try {
+                // Vérifier si l'utilisateur courant a bloqué l'utilisateur cible
+                const blockedUsers = await UserBlock.getBlockedUsers(token);
+                const isUserBlocked = blockedUsers.some((user: { id: number }) => user.id.toString() === userId);
+                setIsBlocked(isUserBlocked);
+
+                // Vérifier si l'utilisateur cible a bloqué l'utilisateur courant
+                const response = await fetch(`http://localhost:8080/api/is-blocked/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                setHasBlockedMe(data.isBlocked);
+            } catch (error) {
+                console.error("Erreur lors de la vérification du statut de blocage:", error);
+            }
+        };
+
+        checkBlockStatus();
+    }, [userId, isCurrentUser]);
 
     console.log('ProfileHeader received hasBlockedMe:', initialHasBlockedMe);
 
@@ -65,26 +93,19 @@ export default function ProfileHeader({
         }
     };
 
-    const handleBlockClick = async () => {
-        let token = sessionStorage.getItem("Token") || "";
-        console.log('Attempting to block/unblock:', { isBlocked, userId });
+    const handleBlock = async () => {
+        const token = sessionStorage.getItem("Token");
+        if (!token) return;
 
         try {
             if (isBlocked) {
-                const response = await Blocked.UnblockUser(token, userId);
-                if (response) {
-                    setIsBlocked(false);
-                    console.log('Unblocked successfully');
-                }
+                await UserBlock.unblockUser(token, userId);
             } else {
-                const response = await Blocked.BlockUser(token, userId);
-                if (response) {
-                    setIsBlocked(true);
-                    console.log('Blocked successfully');
-                }
+                await UserBlock.blockUser(token, userId);
             }
-        } catch (error: any) {
-            console.error("Erreur lors du blocage/déblocage :", error);
+            setIsBlocked(!isBlocked);
+        } catch (error) {
+            console.error("Erreur lors du blocage/déblocage de l'utilisateur:", error);
         }
     };
 
@@ -101,7 +122,7 @@ export default function ProfileHeader({
                 {!isCurrentUser && (
                     <>
                         <Button
-                            onClick={handleBlockClick}
+                            onClick={handleBlock}
                             variant="ghost"
                             size="default"
                             className={`hover:cursor-pointer ${isBlocked ? 'text-red-500' : ''}`}
