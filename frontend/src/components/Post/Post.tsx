@@ -351,107 +351,109 @@ export default function Post({
             )}
           </>
         )}
+        {hasBlockedMe && (
+          <div className="text-sm text-red-500">
+            L'utilisateur vous a bloqué
+          </div>
+        )}
       </div>
 
       {/* Affichage des réponses */}
-      {showReplies && !isReply && !isReadOnly && (
+      {showReplies && !isReply && !isReadOnly && !hasBlockedMe && (
         <div className="mt-2 space-y-2 border-l-2 border-neutral-200 pl-4">
-          {!isBlocked && !hasBlockedMe && !isCensored && (
-            <div className="flex items-start gap-2 py-2 border-b border-neutral-100">
-              <img 
-                src={sessionStorage.getItem("avatar") || "/public/profil/default.jpg"}
-                alt="profil" 
-                className="w-6 h-6 rounded-full"
-              />
-              <form onSubmit={handleSubmitReply} className="flex-1">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-900">
-                      @{sessionStorage.getItem("pseudo")}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={replyContent}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        if (value.length <= 250) {
-                          setReplyContent(value)
-                        }
-                      }}
-                      placeholder="Écrire une réponse..."
-                      className="w-full text-sm text-neutral-700 bg-transparent border-none resize-none focus:outline-none focus:ring-0 min-h-[40px]"
-                      rows={1}
-                      maxLength={250}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement
-                        target.style.height = 'auto'
-                        target.style.height = target.scrollHeight + 'px'
-                      }}
-                    />
+          <div className="flex items-start gap-2 py-2 border-b border-neutral-100">
+            <img 
+              src={sessionStorage.getItem("avatar") || "/public/profil/default.jpg"}
+              alt="profil" 
+              className="w-6 h-6 rounded-full"
+            />
+            <form onSubmit={handleSubmitReply} className="flex-1">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-neutral-900">
+                    @{sessionStorage.getItem("pseudo")}
+                  </span>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value.length <= 250) {
+                        setReplyContent(value)
+                      }
+                    }}
+                    placeholder="Écrire une réponse..."
+                    className="w-full text-sm text-neutral-700 bg-transparent border-none resize-none focus:outline-none focus:ring-0 min-h-[40px]"
+                    rows={1}
+                    maxLength={250}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement
+                      target.style.height = 'auto'
+                      target.style.height = target.scrollHeight + 'px'
+                    }}
+                  />
 
-                    {/* Affichage des médias sélectionnés */}
-                    {replyMedia.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {replyMedia.map((file, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={`Media ${index + 1}`}
-                              className="w-20 h-20 object-cover rounded-md"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeMedia(index)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M18 6L6 18M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center mt-2">
-                      <div className="flex items-center gap-4">
-                        <span className={`text-xs ${replyContent.length >= 250 ? 'text-red-500' : 'text-neutral-500'}`}>
-                          {replyContent.length}/250 caractères
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="p-1 rounded-full hover:bg-neutral-100 transition-colors"
-                        >
-                          <svg className="w-5 h-5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                            <path d="M14 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-6" />
-                          </svg>
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={handleFileChange}
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={(!replyContent.trim() && replyMedia.length === 0) || isSubmitting}
-                        className="px-4 py-1 text-xs font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isSubmitting ? "Envoi..." : "Répondre"}
-                      </button>
+                  {/* Affichage des médias sélectionnés */}
+                  {replyMedia.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {replyMedia.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Media ${index + 1}`}
+                            className="w-20 h-20 object-cover rounded-md"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeMedia(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M18 6L6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
                     </div>
+                  )}
+
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="flex items-center gap-4">
+                      <span className={`text-xs ${replyContent.length >= 250 ? 'text-red-500' : 'text-neutral-500'}`}>
+                        {replyContent.length}/250 caractères
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-1 rounded-full hover:bg-neutral-100 transition-colors"
+                      >
+                        <svg className="w-5 h-5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                          <path d="M14 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-6" />
+                        </svg>
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={(!replyContent.trim() && replyMedia.length === 0) || isSubmitting}
+                      className="px-4 py-1 text-xs font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? "Envoi..." : "Répondre"}
+                    </button>
                   </div>
                 </div>
-              </form>
-            </div>
-          )}
-
+              </div>
+            </form>
+          </div>
           {isLoadingReplies ? (
             <div className="text-sm text-neutral-500">Chargement des réponses...</div>
           ) : replies.length > 0 ? (
@@ -567,12 +569,6 @@ export default function Post({
           ) : (
             <div className="text-sm text-neutral-500">Aucune réponse</div>
           )}
-        </div>
-      )}
-
-      {hasBlockedMe && (
-        <div className="text-sm text-red-500 mt-2">
-          Vous ne pouvez pas interagir avec ce post car l'utilisateur vous a bloqué
         </div>
       )}
 

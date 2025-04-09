@@ -2,6 +2,7 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } f
 import Post from "../Post/Post";
 import SkeletonPost from "../Post/SkeletonPost";
 import { Post as PostData } from "../../data/post";
+import { UserBlock } from "../../data/blocked";
 
 interface PostType {
   id: number;
@@ -32,6 +33,7 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [blockedUsers, setBlockedUsers] = useState<{[key: string]: boolean}>({});
   const observer = useRef<IntersectionObserver | null>(null);
   const lastPostElementRef = useRef<HTMLDivElement | null>(null);
 
@@ -67,6 +69,14 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
 
       setHasMore(data.posts?.length > 0 && data.next_page !== null);
       setCurrentPage(page);
+
+      // Vérifier le statut de blocage pour chaque post
+      const blockedStatus: {[key: string]: boolean} = {};
+      for (const post of data.posts) {
+        const blockedData = await UserBlock.isUserBlocked(token, post.user.id);
+        blockedStatus[post.user.id] = blockedData.isBlocked;
+      }
+      setBlockedUsers(prev => ({...prev, ...blockedStatus}));
     } catch (error) {
       console.error('Error in fetchPosts:', error);
       setError('Une erreur est survenue lors du chargement des posts');
@@ -149,6 +159,7 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
             likeCount={post.like_count}
             userLiked={post.user_liked}
             isBlocked={post.user.is_blocked}
+            hasBlockedMe={blockedUsers[post.user.id] || false}
             media={post.media}
             refreshPosts={refreshPosts}
             isCensored={post.is_censored}
