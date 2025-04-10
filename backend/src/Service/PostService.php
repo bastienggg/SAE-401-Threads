@@ -18,8 +18,6 @@ class PostService
         $this->userRepository = $userRepository;
     }
 
-
-
     public function create(CreatePostPayload $payload): void
     {
         $user = $this->userRepository->find($payload->getUserId());
@@ -29,7 +27,7 @@ class PostService
     
         $post = new Post();
         $post->setContent($payload->getContent());
-        $post->setCreatedAt(new \DateTime());
+        $post->setCreatedAt(new \DateTimeImmutable());
         $post->setUser($user);
     
         if ($payload->getMedia()) {

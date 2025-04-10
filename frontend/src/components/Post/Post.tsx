@@ -59,7 +59,6 @@ export default function Post({
   const [showReplies, setShowReplies] = useState(false)
   const [replies, setReplies] = useState<any[]>([])
   const [isLoadingReplies, setIsLoadingReplies] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
   const [showReplyMenu, setShowReplyMenu] = useState<number | null>(null)
   const [selectedReply, setSelectedReply] = useState<any>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -74,6 +73,7 @@ export default function Post({
   const isCurrentUser = currentUserId === Number(userId)
   const token = sessionStorage.getItem("Token")
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -247,8 +247,43 @@ export default function Post({
     } catch (error) {
       console.error("Erreur lors de l'épinglage/désépinglage du post:", error);
     }
-    setShowMenu(false);
   };
+
+  const handleBlockUser = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/block/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        setIsOptionsOpen(false);
+        if (refreshPosts) refreshPosts();
+      }
+    } catch (error) {
+      console.error("Erreur lors du blocage de l'utilisateur:", error);
+    }
+  };
+
+  const handleOptionsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOptionsOpen(!isOptionsOpen);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOptionsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   if (!isVisible) {
     return null
@@ -280,59 +315,6 @@ export default function Post({
                 </div>
               )}
             </div>
-            {!isBlocked && !hasBlockedMe && (
-              <div className="relative" ref={menuRef}>
-                <button 
-                  className="text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowMenu(!showMenu)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
-                </button>
-                {showMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-                    <div className="py-1">
-                      {isCurrentUser && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setShowEditModal(true)
-                              setShowMenu(false)
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                            Modifier
-                          </button>
-                          <button
-                            onClick={handlePinClick}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                            </svg>
-                            {isPostPinned ? "Désépingler" : "Épingler"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowConfirm(true)
-                              setShowMenu(false)
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                          >
-                            Supprimer
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
           <div className="flex flex-col gap-2">
             <p 
@@ -593,6 +575,60 @@ export default function Post({
         </div>
       )}
 
+      <div className="absolute top-4 right-4" ref={menuRef}>
+        {!isBlocked && !hasBlockedMe && isCurrentUser && (
+          <button
+            onClick={handleOptionsClick}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+        )}
+
+        {isOptionsOpen && (
+          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+            <div className="py-1">
+              <button
+                onClick={() => {
+                  setShowEditModal(true);
+                  setIsOptionsOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Modifier le post
+              </button>
+              <button
+                onClick={() => {
+                  handlePinClick();
+                  setIsOptionsOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                </svg>
+                {isPostPinned ? "Désépingler" : "Épingler"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirm(true);
+                  setIsOptionsOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+              >
+                Supprimer le post
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {showConfirm && (
         <ConfirmDelete
           onConfirm={handleDelete}
@@ -602,17 +638,40 @@ export default function Post({
 
       {showEditModal && (
         <EditPostModal
-          postId={selectedReply ? selectedReply.id.toString() : postId}
-          initialContent={selectedReply ? selectedReply.content : postContent}
-          initialMedia={selectedReply ? selectedReply.media : postMedia}
-          onClose={() => {
-            setShowEditModal(false)
-            setSelectedReply(null)
-          }}
+          postId={postId}
+          initialContent={postContent}
+          initialMedia={postMedia}
+          onClose={() => setShowEditModal(false)}
           onUpdate={handlePostUpdate}
-          onPostUpdated={refreshPosts}
-          isReply={!!selectedReply}
         />
+      )}
+
+      {isBlockModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4">Bloquer @{pseudo} ?</h3>
+            <p className="text-gray-600 mb-6">
+              Cette personne ne pourra plus voir vos posts ni interagir avec vous.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsBlockModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  handleBlockUser();
+                  setIsBlockModalOpen(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Bloquer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -1,4 +1,3 @@
-
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
@@ -8,8 +7,9 @@
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
-/public/uploads/*
-!/public/uploads/images/.gitkeep
+
+# Ignorer complètement le dossier uploads
+/public/uploads/
 
 ###> lexik/jwt-authentication-bundle ###
 /config/jwt/*.pem
