@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Ban, CheckCircle } from "lucide-react";
+import { Search, Ban, CheckCircle, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Post } from "../../data/post";
@@ -88,6 +88,22 @@ export default function ContentModeration() {
     }
   };
 
+  const handleDelete = async (postId: number) => {
+    const token = sessionStorage.getItem("Token");
+    if (!token) return;
+
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce post ?")) {
+      try {
+        const response = await Post.deletePost(token, postId.toString());
+        if (response) {
+          setPosts(posts.filter(post => post.id !== postId));
+        }
+      } catch (error) {
+        console.error("Erreur lors de la suppression du post:", error);
+      }
+    }
+  };
+
   const filteredPosts = posts.filter(post =>
     post.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
     post.user.pseudo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -147,24 +163,35 @@ export default function ContentModeration() {
                     </div>
                   </td>
                   <td className="p-2 align-middle text-right">
-                    <Button
-                      variant={post.is_censored ? "default" : "destructive"}
-                      size="default"
-                      onClick={() => post.is_censored ? handleUncensor(post.id) : handleCensor(post.id)}
-                      className="flex items-center gap-2"
-                    >
-                      {post.is_censored ? (
-                        <>
-                          <CheckCircle className="h-4 w-4" />
-                          <span className="hidden md:inline">Désensurer</span>
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="h-4 w-4" />
-                          <span className="hidden md:inline">Censurer</span>
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant={post.is_censored ? "default" : "destructive"}
+                        size="default"
+                        onClick={() => post.is_censored ? handleUncensor(post.id) : handleCensor(post.id)}
+                        className="flex items-center gap-2"
+                      >
+                        {post.is_censored ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="hidden md:inline">Désensurer</span>
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="h-4 w-4" />
+                            <span className="hidden md:inline">Censurer</span>
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="default"
+                        onClick={() => handleDelete(post.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden md:inline">Supprimer</span>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

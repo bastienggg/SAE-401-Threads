@@ -339,7 +339,7 @@ final class PostController extends AbstractController
         }
     
         $user = $this->getUser();
-        if ($post->getUser()->getId() !== $user->getId()) {
+        if ($post->getUser()->getId() !== $user->getId() && !$this->isGranted('ROLE_ADMIN')) {
             return $this->json(['error' => 'You are not authorized to delete this post'], Response::HTTP_FORBIDDEN);
         }
     
