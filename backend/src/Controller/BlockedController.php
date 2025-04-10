@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\User;
@@ -13,7 +12,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 final class BlockedController extends AbstractController
 {
-    #[Route('/blocked/{id}', name: 'app_block_user', methods: ['POST'])]
+    #[Route('/api/blocked/{id}', name: 'app_block_user', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')] 
     public function blockUser(int $id, EntityManagerInterface $entityManager): Response
     {
@@ -23,13 +22,17 @@ final class BlockedController extends AbstractController
             return $this->json(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
 
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['error' => 'Cannot block an administrator'], Response::HTTP_FORBIDDEN);
+        }
+
         $user->setBlocked(true);
         $entityManager->flush();
 
         return $this->json(['message' => 'User has been blocked successfully']);
     }
 
-    #[Route('/blocked/{id}', name: 'app_unblock_user', methods: ['DELETE'])]
+    #[Route('/api/blocked/{id}', name: 'app_unblock_user', methods: ['DELETE'])]
     #[IsGranted('ROLE_ADMIN')]
     public function unblockUser(int $id, EntityManagerInterface $entityManager): Response
     {

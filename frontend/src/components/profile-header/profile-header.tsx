@@ -2,7 +2,7 @@ import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
 import { Follow } from "../../data/follow";
 import { Blocked } from "../../data/blocked";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ban } from "lucide-react";
 
 interface ProfileHeaderProps {
@@ -21,43 +21,48 @@ export default function ProfileHeader({
     email,
     isCurrentUser,
     followersCount,
-    isFollowing: initialIsFollowing,
+    isFollowing,
     userId,
-    isBlocked: initialIsBlocked = false,
-    hasBlockedMe: initialHasBlockedMe = false,
+    isBlocked,
+    hasBlockedMe
 }: ProfileHeaderProps) {
-    const navigate = useNavigate();
-    const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+    const [isUserBlocked, setIsUserBlocked] = useState(false);
     const [currentFollowersCount, setCurrentFollowersCount] = useState(followersCount);
-    const [isBlocked, setIsBlocked] = useState(initialIsBlocked);
-    const [hasBlockedMe, setHasBlockedMe] = useState(initialHasBlockedMe);
+    const navigate = useNavigate();
 
-    console.log('ProfileHeader received hasBlockedMe:', initialHasBlockedMe);
+    useEffect(() => {
+        const fetchBlockStatus = async () => {
+            const token = sessionStorage.getItem('Token');
+            if (!token || isCurrentUser) return;
 
-    console.log('Initial states:', {
-        isFollowing: initialIsFollowing,
-        isBlocked: initialIsBlocked,
-        hasBlockedMe: initialHasBlockedMe,
-    });
+            try {
+                const response = await fetch(`http://localhost:8080/api/users/${userId}/block-status`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                setIsUserBlocked(data.isBlocked);
+            } catch (error) {
+                console.error('Error fetching block status:', error);
+            }
+        };
+
+        fetchBlockStatus();
+    }, [userId, isCurrentUser]);
 
     const handleFollowClick = async () => {
         let token = sessionStorage.getItem("Token") || "";
-        console.log('Attempting to follow/unfollow:', { isFollowing, userId });
-
         try {
             if (isFollowing) {
                 const response = await Follow.unfollowUser(token, userId);
                 if (response) {
-                    setIsFollowing(false);
                     setCurrentFollowersCount((prevCount) => prevCount - 1);
-                    console.log('Unfollowed successfully');
                 }
             } else {
                 const response = await Follow.followUser(token, userId);
                 if (response) {
-                    setIsFollowing(true);
                     setCurrentFollowersCount((prevCount) => prevCount + 1);
-                    console.log('Followed successfully');
                 }
             }
         } catch (error) {
@@ -67,23 +72,19 @@ export default function ProfileHeader({
 
     const handleBlockClick = async () => {
         let token = sessionStorage.getItem("Token") || "";
-        console.log('Attempting to block/unblock:', { isBlocked, userId });
-
         try {
-            if (isBlocked) {
+            if (isUserBlocked) {
                 const response = await Blocked.UnblockUser(token, userId);
                 if (response) {
-                    setIsBlocked(false);
-                    console.log('Unblocked successfully');
+                    setIsUserBlocked(false);
                 }
             } else {
                 const response = await Blocked.BlockUser(token, userId);
                 if (response) {
-                    setIsBlocked(true);
-                    console.log('Blocked successfully');
+                    setIsUserBlocked(true);
                 }
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error("Erreur lors du blocage/déblocage :", error);
         }
     };
@@ -104,7 +105,7 @@ export default function ProfileHeader({
                             onClick={handleBlockClick}
                             variant="ghost"
                             size="default"
-                            className={`hover:cursor-pointer ${isBlocked ? 'text-red-500' : ''}`}
+                            className={`hover:cursor-pointer ${isUserBlocked ? 'text-red-500' : ''}`}
                         >
                             <Ban className="h-5 w-5" />
                         </Button>

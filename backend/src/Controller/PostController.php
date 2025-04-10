@@ -21,6 +21,7 @@ use App\Repository\LikeRepository;
 use App\Repository\UserBlockRepository;
 use App\Entity\Comment;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class PostController extends AbstractController
 {
@@ -623,5 +624,71 @@ final class PostController extends AbstractController
             ]);
             return $this->json(['error' => 'Failed to create reply: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public function getPosts(
+        PostRepository $postRepository,
+        UserBlockRepository $userBlockRepository,
+        Request $request
+    ): JsonResponse {
+        $user = $this->getUser();
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 10);
+        $offset = ($page - 1) * $limit;
+
+        $posts = $postRepository->findBy(
+            ['parent' => null],
+            ['createdAt' => 'DESC'],
+            $limit,
+            $offset
+        );
+
+        $data = array_map(function ($post) use ($user, $userBlockRepository) {
+            $userEntity = $post->getUser();
+            $avatarUrl = $userEntity->getAvatar() ? $this->generateUrl('app_avatar', ['filename' => $userEntity->getAvatar()], UrlGeneratorInterface::ABSOLUTE_URL) : null;
+            $likeCount = $post->getLikes()->count();
+            $userLiked = $user ? $post->getLikes()->exists(function($key, $like) use ($user) { return $like->getUser() === $user; }) : false;
+            $media = $post->getMedia() ? json_decode($post->getMedia(), true) : null;
+
+            // Vérifier si l'utilisateur est bloqué par l'admin
+            if ($userEntity->isBlocked()) {
+                return [
+                    'id' => $post->getId(),
+                    'content' => "Cet utilisateur a été bloqué par l'administrateur",
+                    'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
+                    'user' => [
+                        'id' => $userEntity->getId(),
+                        'avatar' => $avatarUrl,
+                        'pseudo' => $userEntity->getPseudo(),
+                        'is_blocked' => true,
+                    ],
+                    'like_count' => 0,
+                    'user_liked' => false,
+                    'is_censored' => false,
+                    'media' => null
+                ];
+            }
+
+            return [
+                'id' => $post->getId(),
+                'content' => $post->isCensored() ? "Ce message enfreint les conditions d'utilisation de la plateforme" : $post->getContent(),
+                'created_at' => $post->getCreatedAt()->format('Y-m-d H:i:s'),
+                'user' => [
+                    'id' => $userEntity->getId(),
+                    'avatar' => $avatarUrl,
+                    'pseudo' => $userEntity->getPseudo(),
+                    'is_blocked' => $userEntity->isBlocked(),
+                ],
+                'like_count' => $likeCount,
+                'user_liked' => $userLiked,
+                'is_censored' => $post->isCensored(),
+                'media' => $media
+            ];
+        }, $posts);
+
+        return $this->json([
+            'posts' => array_values($data),
+            'total' => $postRepository->count(['parent' => null])
+        ]);
     }
 }

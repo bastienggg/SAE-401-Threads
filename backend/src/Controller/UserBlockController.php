@@ -26,6 +26,12 @@ class UserBlockController extends AbstractController
         FollowRepository $followRepository
     ): JsonResponse {
         $blocker = $this->getUser();
+        
+        // Vérifier si l'utilisateur est bloqué par l'admin
+        if ($blocker->isBlocked()) {
+            return new JsonResponse(['error' => 'You cannot block users while your account is blocked by an administrator'], JsonResponse::HTTP_FORBIDDEN);
+        }
+
         $blocked = $userRepository->find($id);
 
         if (!$blocked) {

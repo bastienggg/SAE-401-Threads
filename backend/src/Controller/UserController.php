@@ -14,6 +14,8 @@ use Symfony\Component\HttpKernel\Attribute\MapUploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use App\Repository\UserBlockRepository;
+use App\Entity\User;
 
 
 final class UserController extends AbstractController
@@ -209,6 +211,25 @@ final class UserController extends AbstractController
         }
 
         return new JsonResponse(['code' => 'C-1101'], JsonResponse::HTTP_OK);
+    }
+
+    #[Route('/users/{id}/block-status', name: 'get_user_block_status', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getUserBlockStatus(int $id, UserBlockRepository $userBlockRepository): JsonResponse
+    {
+        $currentUser = $this->getUser();
+        $targetUser = $this->getDoctrine()->getRepository(User::class)->find($id);
+
+        if (!$targetUser) {
+            return new JsonResponse(['error' => 'User not found'], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $isBlocked = $userBlockRepository->isBlocked($currentUser->getId(), $targetUser->getId());
+
+        return new JsonResponse([
+            'isBlocked' => $isBlocked,
+            'isBlockedByAdmin' => $targetUser->isBlocked()
+        ]);
     }
 
 }

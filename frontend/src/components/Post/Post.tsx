@@ -334,11 +334,11 @@ export default function Post({
           </div>
           <div className="flex flex-col gap-2">
             <p className={`${isCensored || isBlocked ? 'text-red-500 italic' : 'text-muted-foreground'} ${isReply ? 'text-sm' : ''}`}>
-              {isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : content}
+              {isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : isCensored ? "Ce message enfreint les conditions d'utilisation de la plateforme" : content}
             </p>
           </div>
 
-          {media && media.length > 0 && !isCensored && (
+          {media && media.length > 0 && !isCensored && !isBlocked && (
             <div className="mt-2">
               <ImageCarousel images={media} className={`${isReply ? 'w-3/4' : 'w-full'}`} />
             </div>

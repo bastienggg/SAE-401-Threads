@@ -63,10 +63,17 @@ export default function UserManagement() {
     }
 
     try {
-      if (user.isBlocked) {
-        await Blocked.UnblockUser(token, user.id.toString());
-      } else {
-        await Blocked.BlockUser(token, user.id.toString());
+      const response = await fetch(`http://localhost:8080/api/blocked/${user.id}`, {
+        method: user.isBlocked ? 'DELETE' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update block status');
       }
 
       // Mettre à jour l'état local après le changement
@@ -77,6 +84,7 @@ export default function UserManagement() {
       );
     } catch (error) {
       console.error("Error toggling block status:", error);
+      alert(error instanceof Error ? error.message : "Une erreur est survenue");
     }
   };
 
