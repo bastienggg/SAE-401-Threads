@@ -28,6 +28,19 @@ interface PostProps {
   isReadOnly?: boolean
   isPinned?: boolean
   repliesCount?: number
+  retweetCount?: number
+  isRetweeted?: boolean
+  isRetweet?: boolean
+  originalPost?: {
+    id: string
+    content: string
+    user: {
+      id: string
+      pseudo: string
+      avatar: string
+    }
+    media?: string[]
+  }
 }
 
 export default function Post({
@@ -48,6 +61,10 @@ export default function Post({
   isReadOnly = false,
   isPinned = false,
   repliesCount = 0,
+  retweetCount = 0,
+  isRetweeted = false,
+  isRetweet,
+  originalPost,
 }: PostProps) {
   const [showConfirm, setShowConfirm] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -74,6 +91,8 @@ export default function Post({
   const token = sessionStorage.getItem("Token")
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false)
+  const [isRetweetedState, setIsRetweetedState] = useState(isRetweeted)
+  const [retweetCountState, setRetweetCountState] = useState(retweetCount)
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -272,6 +291,28 @@ export default function Post({
     setIsOptionsOpen(!isOptionsOpen);
   };
 
+  const handleRetweet = async () => {
+    if (!token) return;
+
+    try {
+      if (isRetweetedState) {
+        const response = await PostAPI.unretweetPost(token, postId);
+        if (response) {
+          setIsRetweetedState(false);
+          setRetweetCountState(prev => prev - 1);
+        }
+      } else {
+        const response = await PostAPI.retweetPost(token, postId);
+        if (response) {
+          setIsRetweetedState(true);
+          setRetweetCountState(prev => prev + 1);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling retweet:', error);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -291,20 +332,42 @@ export default function Post({
 
   return (
     <div className="bg-white p-4 rounded-lg shadow mb-4 relative w-full">
-      <div className="flex items-start space-x-3">
-        <Link to={`/profile/${userId}`} className="flex-shrink-0">
+      {isRetweet && originalPost && (
+        <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <Link to={`/profile/${userId}`} className="font-medium hover:underline">
+            {pseudo}
+          </Link>
+          <span>a retweeté</span>
+        </div>
+      )}
+      
+      <div className={`flex items-start space-x-3 ${isRetweet ? 'ml-5' : ''}`}>
+        <Link to={`/profile/${isRetweet ? originalPost?.user.id : userId}`} className="flex-shrink-0">
           <img
-            src={avatar || "/public/profil/default.jpg"}
-            alt={`Avatar de ${pseudo}`}
+            src={isRetweet ? originalPost?.user.avatar : avatar || "/public/profil/default.jpg"}
+            alt={`Avatar de ${isRetweet ? originalPost?.user.pseudo : pseudo}`}
             className="w-10 h-10 rounded-full object-cover"
           />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Link to={`/profile/${userId}`} className="font-semibold text-gray-900 hover:underline">
-                {pseudo}
+              <Link to={`/profile/${isRetweet ? originalPost?.user.id : userId}`} className="font-semibold text-gray-900 hover:underline">
+                {isRetweet ? originalPost?.user.pseudo : pseudo}
               </Link>
+              <span className="text-gray-500 text-sm">·</span>
               <span className="text-gray-500 text-sm">{formatDate(createdAt)}</span>
               {isPinned && (
                 <div className="flex items-center text-blue-500">
@@ -316,49 +379,71 @@ export default function Post({
               )}
             </div>
           </div>
+          
           <div className="flex flex-col gap-2">
             <p 
               className={`${isCensored || isBlocked ? 'text-red-500 italic' : 'text-muted-foreground'} ${isReply ? 'text-sm' : ''}`}
-              dangerouslySetInnerHTML={{ __html: formatContent(isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : content) }}
+              dangerouslySetInnerHTML={{ __html: formatContent(isBlocked ? "Cet utilisateur a été bloqué par l'administrateur" : (isRetweet ? (originalPost?.content || '') : content)) }}
             />
           </div>
 
-          {media && media.length > 0 && !isCensored && (
+          {((isRetweet && originalPost?.media) || (!isRetweet && media)) && (
             <div className="mt-2">
-              <ImageCarousel images={media} className={`${isReply ? 'w-3/4' : 'w-full'}`} />
+              <ImageCarousel 
+                images={isRetweet ? (originalPost?.media || []) : (media || [])} 
+                className={`${isReply ? 'w-3/4' : 'w-full'}`} 
+              />
             </div>
           )}
-        </div>
-      </div>
 
-      <div className="flex items-center gap-4 mt-2">
-        {!isBlocked && !hasBlockedMe && !isCensored && (
-          <>
-            <div className="flex items-center gap-1">
-              <img
-                src={isLiked ? "/public/svg/heart-filled.svg" : "/public/svg/heart.svg"}
-                className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
-                alt={isLiked ? "Unlike" : "Like"}
-                onClick={isLiked ? handleUnlike : handleLike}
-              />
-              <span className="text-sm text-neutral-700">{likes}</span>
-            </div>
-            {!isReadOnly && (
-              <div className="flex items-center gap-1">
-                <MessageCircle 
-                  className="h-5 w-5 text-neutral-500 hover:text-blue-500 hover:cursor-pointer"
-                  onClick={handleShowReplies}
-                />
-                <span className="text-sm text-neutral-700">{repliesCount}</span>
-              </div>
+          <div className="flex items-center gap-4 mt-2">
+            {!isBlocked && !hasBlockedMe && !isCensored && (
+              <>
+                <div className="flex items-center gap-1">
+                  <img
+                    src={isLiked ? "/public/svg/heart-filled.svg" : "/public/svg/heart.svg"}
+                    className="w-5 h-5 hover:cursor-pointer hover:scale-110 transition-transform duration-200 ease-in-out"
+                    alt={isLiked ? "Unlike" : "Like"}
+                    onClick={isLiked ? handleUnlike : handleLike}
+                  />
+                  <span className="text-sm text-neutral-700">{likes}</span>
+                </div>
+                {!isReadOnly && (
+                  <div className="flex items-center gap-1">
+                    <MessageCircle 
+                      className="h-5 w-5 text-neutral-500 hover:text-blue-500 hover:cursor-pointer"
+                      onClick={handleShowReplies}
+                    />
+                    <span className="text-sm text-neutral-700">{repliesCount}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleRetweet}
+                    className={`p-1 rounded-full hover:bg-gray-100 transition-colors ${
+                      isRetweetedState ? 'text-green-500' : 'text-gray-500'
+                    }`}
+                    title={isRetweetedState ? "Annuler le retweet" : "Retweeter"}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                  <span className="text-sm text-neutral-700">{retweetCountState}</span>
+                </div>
+              </>
             )}
-          </>
-        )}
-        {hasBlockedMe && (
-          <div className="text-sm text-red-500">
-            L'utilisateur vous a bloqué
           </div>
-        )}
+        </div>
       </div>
 
       {/* Affichage des réponses */}
@@ -590,31 +675,35 @@ export default function Post({
         {isOptionsOpen && (
           <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
             <div className="py-1">
-              <button
-                onClick={() => {
-                  setShowEditModal(true);
-                  setIsOptionsOpen(false);
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-                Modifier le post
-              </button>
-              <button
-                onClick={() => {
-                  handlePinClick();
-                  setIsOptionsOpen(false);
-                }}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                </svg>
-                {isPostPinned ? "Désépingler" : "Épingler"}
-              </button>
+              {!isRetweet && (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(true);
+                      setIsOptionsOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    Modifier le post
+                  </button>
+                  <button
+                    onClick={() => {
+                      handlePinClick();
+                      setIsOptionsOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                    </svg>
+                    {isPostPinned ? "Désépingler" : "Épingler"}
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => {
                   setShowConfirm(true);

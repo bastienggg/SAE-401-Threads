@@ -13,6 +13,8 @@ interface PostType {
     pinPost: (token: string, postId: string) => Promise<any>;
     unpinPost: (token: string, postId: string) => Promise<any>;
     searchPosts: (token: string, query: string) => Promise<any>;
+    retweetPost: (token: string, postId: string) => Promise<any>;
+    unretweetPost: (token: string, postId: string) => Promise<any>;
 }
 
 let Post: PostType = {
@@ -141,6 +143,26 @@ let Post: PostType = {
     } catch (error) {
       console.error('Erreur lors de la recherche de posts:', error);
       throw error;
+    }
+  },
+
+  retweetPost: async function (token: string, postId: string) {
+    try {
+      const data = await postRequest(`posts/${postId}/retweet`, new FormData(), token);
+      return data;
+    } catch (error) {
+      console.error(`Error retweeting post ${postId}:`, error);
+      return null;
+    }
+  },
+
+  unretweetPost: async function (token: string, postId: string) {
+    try {
+      const data = await postRequest(`posts/${postId}/unretweet`, new FormData(), token);
+      return data;
+    } catch (error) {
+      console.error(`Error unretweeting post ${postId}:`, error);
+      return null;
     }
   }
 };

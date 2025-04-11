@@ -21,8 +21,10 @@ class PostRepository extends ServiceEntityRepository
     {
         try {
             $query = $this->createQueryBuilder('p')
-                ->select('p', 'u')
-                ->innerJoin('p.user', 'u')
+                ->select('p', 'u', 'op', 'opu')
+                ->leftJoin('p.user', 'u')
+                ->leftJoin('p.originalPost', 'op')
+                ->leftJoin('op.user', 'opu')
                 ->where('p.parent IS NULL')
                 ->orderBy('p.created_at', 'DESC')
                 ->setFirstResult($offset)
@@ -40,8 +42,10 @@ class PostRepository extends ServiceEntityRepository
     {
         try {
             $query = $this->createQueryBuilder('p')
-                ->select('p', 'u')
-                ->innerJoin('p.user', 'u')
+                ->select('p', 'u', 'op', 'opu')
+                ->leftJoin('p.user', 'u')
+                ->leftJoin('p.originalPost', 'op')
+                ->leftJoin('op.user', 'opu')
                 ->where('p.user = :userId')
                 ->andWhere('p.parent IS NULL')
                 ->setParameter('userId', $userId)
@@ -67,6 +71,47 @@ class PostRepository extends ServiceEntityRepository
             ->orderBy('p.created_at', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    public function findRetweetsByUser(int $userId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->select('p', 'u', 'op', 'opu')
+            ->leftJoin('p.user', 'u')
+            ->leftJoin('p.originalPost', 'op')
+            ->leftJoin('op.user', 'opu')
+            ->where('p.user = :userId')
+            ->andWhere('p.is_retweet = true')
+            ->setParameter('userId', $userId)
+            ->orderBy('p.created_at', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findRetweetsOfPost(int $postId): array
+    {
+        return $this->createQueryBuilder('p')
+            ->select('p', 'u')
+            ->leftJoin('p.user', 'u')
+            ->where('p.originalPost = :postId')
+            ->setParameter('postId', $postId)
+            ->orderBy('p.created_at', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function hasUserRetweeted(int $userId, int $postId): bool
+    {
+        $retweet = $this->createQueryBuilder('p')
+            ->where('p.user = :userId')
+            ->andWhere('p.originalPost = :postId')
+            ->andWhere('p.is_retweet = true')
+            ->setParameter('userId', $userId)
+            ->setParameter('postId', $postId)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $retweet !== null;
     }
 
     //    /**

@@ -48,6 +48,16 @@ class Post
     #[ORM\OneToMany(mappedBy: 'parent', targetEntity: Post::class)]
     private Collection $replies;
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    private bool $is_retweet = false;
+
+    #[ORM\ManyToOne(targetEntity: Post::class)]
+    #[ORM\JoinColumn(name: 'original_post_id', referencedColumnName: 'id', nullable: true)]
+    private ?Post $originalPost = null;
+
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $retweet_count = 0;
+
     public function __construct()
     {
         $this->replies = new ArrayCollection();
@@ -166,6 +176,53 @@ class Post
             if ($reply->getParent() === $this) {
                 $reply->setParent(null);
             }
+        }
+        return $this;
+    }
+
+    public function isRetweet(): bool
+    {
+        return $this->is_retweet;
+    }
+
+    public function setIsRetweet(bool $is_retweet): static
+    {
+        $this->is_retweet = $is_retweet;
+        return $this;
+    }
+
+    public function getOriginalPost(): ?self
+    {
+        return $this->originalPost;
+    }
+
+    public function setOriginalPost(?self $originalPost): static
+    {
+        $this->originalPost = $originalPost;
+        return $this;
+    }
+
+    public function getRetweetCount(): int
+    {
+        return $this->retweet_count;
+    }
+
+    public function setRetweetCount(int $retweet_count): static
+    {
+        $this->retweet_count = $retweet_count;
+        return $this;
+    }
+
+    public function incrementRetweetCount(): static
+    {
+        $this->retweet_count++;
+        return $this;
+    }
+
+    public function decrementRetweetCount(): static
+    {
+        if ($this->retweet_count > 0) {
+            $this->retweet_count--;
         }
         return $this;
     }

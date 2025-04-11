@@ -21,6 +21,19 @@ interface PostType {
   is_censored?: boolean;
   is_pinned?: boolean;
   replies_count: number;
+  is_retweet?: boolean;
+  original_post?: {
+    id: string;
+    content: string;
+    user: {
+      id: string;
+      pseudo: string;
+      avatar: string;
+    };
+    media?: string[];
+  };
+  retweet_count: number;
+  is_retweeted: boolean;
 }
 
 interface AllPostsProps {
@@ -150,7 +163,7 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
           className="w-full max-w-2xl mb-4"
         >
           <Post
-            content={post.content}
+            content={post.is_retweet ? (post.original_post?.content || '') : post.content}
             pseudo={post.user.pseudo}
             createdAt={post.created_at}
             avatar={post.user.avatar}
@@ -160,11 +173,24 @@ const AllPosts = forwardRef(({ token }: AllPostsProps, ref) => {
             userLiked={post.user_liked}
             isBlocked={post.user.is_blocked}
             hasBlockedMe={blockedUsers[post.user.id] || false}
-            media={post.media}
+            media={post.is_retweet ? post.original_post?.media : post.media}
             refreshPosts={refreshPosts}
             isCensored={post.is_censored}
             isPinned={post.is_pinned}
             repliesCount={post.replies_count}
+            isRetweet={post.is_retweet}
+            originalPost={post.original_post ? {
+                id: post.original_post.id.toString(),
+                content: post.original_post.content,
+                user: {
+                    id: post.original_post.user.id,
+                    pseudo: post.original_post.user.pseudo,
+                    avatar: post.original_post.user.avatar
+                },
+                media: post.original_post.media
+            } : undefined}
+            retweetCount={post.retweet_count}
+            isRetweeted={post.is_retweeted}
           />
         </div>
       ))}

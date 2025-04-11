@@ -21,6 +21,7 @@ use App\Repository\LikeRepository;
 use App\Repository\UserBlockRepository;
 use App\Entity\Comment;
 use Psr\Log\LoggerInterface;
+use App\Service\RetweetService;
 
 
 #[Route('/api')]
@@ -71,6 +72,24 @@ final class PostController extends AbstractController
     
                 $media = array_map(fn($file) => $baseUrl . '/uploads/' . $file, $post->getMedia() ?? []);
     
+                // Ajout des informations de retweet
+                $originalPost = $post->getOriginalPost();
+                $originalPostData = null;
+    
+                if ($originalPost) {
+                    $originalUser = $originalPost->getUser();
+                    $originalPostData = [
+                        'id' => $originalPost->getId(),
+                        'content' => $originalPost->isCensored() ? "Ce message enfreint les conditions d'utilisation de la plateforme" : $originalPost->getContent(),
+                        'user' => [
+                            'id' => $originalUser->getId(),
+                            'pseudo' => $originalUser->getPseudo(),
+                            'avatar' => $originalUser->getAvatar() ? $baseUrl . '/uploads/' . $originalUser->getAvatar() : null,
+                        ],
+                        'media' => array_map(fn($file) => $baseUrl . '/uploads/' . $file, $originalPost->getMedia() ?? []),
+                    ];
+                }
+    
                 return [
                     'id' => $post->getId(),
                     'content' => $post->isCensored() ? "Ce message enfreint les conditions d'utilisation de la plateforme" : $post->getContent(),
@@ -88,6 +107,10 @@ final class PostController extends AbstractController
                     'is_censored' => $post->isCensored(),
                     'is_pinned' => $post->isPinned(),
                     'replies_count' => $post->getReplies()->count(),
+                    'is_retweet' => $post->isRetweet(),
+                    'original_post' => $originalPostData,
+                    'retweet_count' => $post->getRetweetCount(),
+                    'is_retweeted' => $likeRepository->findOneBy(['post' => $post, 'user' => $user]) !== null,
                 ];
             }, iterator_to_array($paginator));
     
@@ -695,6 +718,56 @@ final class PostController extends AbstractController
             return $this->json(['message' => 'Post unpinned successfully']);
         } catch (\Exception $e) {
             return $this->json(['error' => 'Failed to unpin post: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/posts/{id}/retweet', name: 'retweet_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function retweetPost(
+        int $id,
+        RetweetService $retweetService,
+        PostRepository $postRepository
+    ): JsonResponse {
+        $user = $this->getUser();
+        $originalPost = $postRepository->find($id);
+
+        if (!$originalPost) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $retweet = $retweetService->createRetweet($user, $originalPost);
+            return $this->json([
+                'message' => 'Post retweeted successfully',
+                'retweet_count' => $originalPost->getRetweetCount()
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    #[Route('/posts/{id}/unretweet', name: 'unretweet_post', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function unretweetPost(
+        int $id,
+        RetweetService $retweetService,
+        PostRepository $postRepository
+    ): JsonResponse {
+        $user = $this->getUser();
+        $originalPost = $postRepository->find($id);
+
+        if (!$originalPost) {
+            return $this->json(['error' => 'Post not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $retweetService->removeRetweet($user, $originalPost);
+            return $this->json([
+                'message' => 'Retweet removed successfully',
+                'retweet_count' => $originalPost->getRetweetCount()
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
     }
 }
